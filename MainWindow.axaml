@@ -1,0 +1,79 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:testMpv="clr-namespace:TestMpv"
+        xmlns:vm="clr-namespace:TestMpv.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="TestMpv.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="TestMpv"
+        DragDrop.AllowDrop="True">
+    <Grid>
+        <testMpv:MpvVideoView x:Name="Player" />
+
+        <Canvas x:Name="DanmakuLayer"
+                IsHitTestVisible="False"
+                Background="Transparent">
+            <TextBlock Text="前方高能" Foreground="White" Canvas.Top="50" Canvas.Left="100" FontSize="24">
+                <TextBlock.Effect>
+                    <DropShadowEffect Color="Black" BlurRadius="2" Opacity="1" />
+                </TextBlock.Effect>
+            </TextBlock>
+        </Canvas>
+
+        <Grid RowDefinitions="*,Auto">
+
+            <Panel Grid.Row="0"
+                   Background="Transparent"
+                   PointerPressed="OnVideoPointerPressed"
+                   PointerReleased="OnVideoPointerReleased" />
+
+            <Border x:Name="ControlBar" Grid.Row="1" Background="#CC000000" Padding="10">
+                <StackPanel>
+                    <Slider x:Name="TimeSlider"
+                            Value="{Binding CurrentTime, Mode=TwoWay}"
+                            Maximum="{Binding Duration}"
+                            Minimum="0"
+                            Focusable="False"
+                            ValueChanged="OnSliderValueChanged" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Click="OnPlayPauseClick"
+                                Focusable="False"
+                                Width="28" Height="28">
+                            <Panel>
+                                <Svg Path="/Assets/play.svg"
+                                     IsVisible="{Binding !IsPlaying}"
+                                     Stretch="Uniform">
+                                    <Svg.RenderTransform>
+                                        <ScaleTransform ScaleX="1.5" ScaleY="1.5" />
+                                    </Svg.RenderTransform>
+                                </Svg>
+
+                                <Svg Path="/Assets/pause.svg"
+                                     IsVisible="{Binding IsPlaying}"
+                                     Stretch="Uniform">
+                                    <Svg.RenderTransform>
+                                        <ScaleTransform ScaleX="1.5" ScaleY="1.5" />
+                                    </Svg.RenderTransform>
+                                </Svg>
+                            </Panel>
+                        </Button>
+
+                        <TextBlock Text="{Binding TimeText}"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"
+                                   FontSize="14" />
+                        <TextBlock Text="{Binding PlaybackSpeed, StringFormat=\{0:0.0\}x}"
+                                   Foreground="White"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   Margin="5,0" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
