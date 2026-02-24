@@ -60,6 +60,13 @@ internal class MainWindowViewModel : INotifyPropertyChanged
 
     private void UpdateTimeText()
     {
+        if (Math.Abs(CurrentTime - _lastTimeTextCurrent)  < 0.1 &&
+            Math.Abs(Duration    - _lastTimeTextDuration) < 0.1)
+            return;
+
+        _lastTimeTextCurrent  = CurrentTime;
+        _lastTimeTextDuration = Duration;
+
         TimeText = $"{FormatTime(CurrentTime)} / {FormatTime(Duration)}";
     }
 
@@ -85,4 +92,21 @@ internal class MainWindowViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         return true;
     }
+
+    private double _lastUiUpdateTime;
+
+    public void UpdateTimeFromPlayer(double time, double duration)
+    {
+        // 只在时间变化超过 100ms 才更新 UI
+        if (Math.Abs(time - _lastUiUpdateTime) < 0.1)
+            return;
+
+        _lastUiUpdateTime = time;
+
+        CurrentTime = time;
+        Duration    = duration;
+    }
+
+    private double _lastTimeTextCurrent;
+    private double _lastTimeTextDuration;
 }

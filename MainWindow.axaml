@@ -8,72 +8,116 @@
         x:Class="TestMpv.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="TestMpv"
-        DragDrop.AllowDrop="True">
-    <Grid>
+        DragDrop.AllowDrop="True"
+        PointerMoved="OnWindowPointerMoved"
+        PointerExited="OnWindowPointerExited">
+
+    <Window.Styles>
+        <Style Selector="Button.IconButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="5" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style Selector="Button.IconButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="Button.IconButton:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="Gray" />
+            <Setter Property="Opacity" Value="0.7" />
+        </Style>
+    </Window.Styles>
+
+    <Panel>
         <testMpv:MpvVideoView x:Name="Player" />
 
-        <Canvas x:Name="DanmakuLayer"
-                IsHitTestVisible="False"
-                Background="Transparent">
-            <TextBlock Text="前方高能" Foreground="White" Canvas.Top="50" Canvas.Left="100" FontSize="24">
-                <TextBlock.Effect>
-                    <DropShadowEffect Color="Black" BlurRadius="2" Opacity="1" />
-                </TextBlock.Effect>
-            </TextBlock>
-        </Canvas>
+        <Panel Background="Transparent"
+               PointerPressed="OnVideoPointerPressed"
+               PointerReleased="OnVideoPointerReleased" />
 
-        <Grid RowDefinitions="*,Auto">
+        <Grid x:Name="OverlayControls" RowDefinitions="Auto,*,Auto">
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Height="60" VerticalAlignment="Top">
+                <!-- 添加过渡动画，让隐藏和显示变得平滑 -->
+                <Grid.Transitions>
+                    <Transitions>
+                        <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
+                    </Transitions>
+                </Grid.Transitions>
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#99000000" />
+                        <GradientStop Offset="1" Color="#00000000" />
+                    </LinearGradientBrush>
+                </Grid.Background>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="15,0">
+                    <TextBlock x:Name="VideoText"
+                               Text="TestMpv"
+                               VerticalAlignment="Center"
+                               Foreground="White"
+                               FontWeight="Bold" />
+                </StackPanel>
+            </Grid>
 
-            <Panel Grid.Row="0"
-                   Background="Transparent"
-                   PointerPressed="OnVideoPointerPressed"
-                   PointerReleased="OnVideoPointerReleased" />
+            <Grid Grid.Row="2" RowDefinitions="Auto,Auto" VerticalAlignment="Bottom">
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#00000000" />
+                        <GradientStop Offset="1" Color="#CC000000" />
+                    </LinearGradientBrush>
+                </Grid.Background>
 
-            <Border x:Name="ControlBar" Grid.Row="1" Background="#CC000000" Padding="10">
-                <StackPanel>
-                    <Slider x:Name="TimeSlider"
-                            Value="{Binding CurrentTime, Mode=TwoWay}"
-                            Maximum="{Binding Duration}"
-                            Minimum="0"
-                            Focusable="False"
-                            ValueChanged="OnSliderValueChanged" />
+                <Slider Grid.Row="0" x:Name="TimeSlider"
+                        Margin="10,0"
+                        Value="{Binding CurrentTime, Mode=TwoWay}"
+                        Maximum="{Binding Duration}"
+                        Minimum="0"
+                        Focusable="False"
+                        ValueChanged="OnSliderValueChanged">
+                </Slider>
 
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button Click="OnPlayPauseClick"
-                                Focusable="False"
-                                Width="28" Height="28">
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="10,0,10,10">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Button Click="OnPlayPauseClick" Classes="IconButton" Width="32" Height="32">
                             <Panel>
-                                <Svg Path="/Assets/play.svg"
-                                     IsVisible="{Binding !IsPlaying}"
-                                     Stretch="Uniform">
-                                    <Svg.RenderTransform>
-                                        <ScaleTransform ScaleX="1.5" ScaleY="1.5" />
-                                    </Svg.RenderTransform>
-                                </Svg>
-
-                                <Svg Path="/Assets/pause.svg"
-                                     IsVisible="{Binding IsPlaying}"
-                                     Stretch="Uniform">
-                                    <Svg.RenderTransform>
-                                        <ScaleTransform ScaleX="1.5" ScaleY="1.5" />
-                                    </Svg.RenderTransform>
-                                </Svg>
+                                <Svg Path="/Assets/ico-backward.svg" Stretch="Uniform" />
                             </Panel>
                         </Button>
-
-                        <TextBlock Text="{Binding TimeText}"
-                                   Foreground="White"
-                                   VerticalAlignment="Center"
-                                   FontSize="14" />
-                        <TextBlock Text="{Binding PlaybackSpeed, StringFormat=\{0:0.0\}x}"
-                                   Foreground="White"
-                                   FontWeight="Bold"
-                                   VerticalAlignment="Center"
-                                   FontSize="14"
-                                   Margin="5,0" />
+                        <Button Click="OnPlayPauseClick" Classes="IconButton" Width="32" Height="32">
+                            <Panel>
+                                <Svg Path="/Assets/ico-play.svg" IsVisible="{Binding !IsPlaying}" Stretch="Uniform" />
+                                <Svg Path="/Assets/ico-pause.svg" IsVisible="{Binding IsPlaying}" Stretch="Uniform" />
+                            </Panel>
+                        </Button>
+                        <Button Click="OnPlayPauseClick" Classes="IconButton" Width="32" Height="32">
+                            <Panel>
+                                <Svg Path="/Assets/ico-forward.svg" Stretch="Uniform" />
+                            </Panel>
+                        </Button>
+                        <TextBlock Text="{Binding TimeText}" Foreground="White" VerticalAlignment="Center"
+                                   FontSize="12" />
                     </StackPanel>
-                </StackPanel>
-            </Border>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center">
+                        <Button Click="OnPlayPauseClick" Classes="IconButton" Width="32" Height="32">
+                            <Panel>
+                                <Svg Path="/Assets/ico-danmu-switch-on.svg" IsVisible="{Binding !IsPlaying}"
+                                     Stretch="Uniform" />
+                                <Svg Path="/Assets/ico-danmu-switch-off.svg" IsVisible="{Binding IsPlaying}"
+                                     Stretch="Uniform" />
+                            </Panel>
+                        </Button>
+                        <Button Content="{Binding PlaybackSpeed, StringFormat=\{0:0.0\}x}"
+                                Background="Transparent" Foreground="White"
+                                Focusable="False" FontWeight="Bold" Padding="5" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
         </Grid>
-    </Grid>
+    </Panel>
 </Window>

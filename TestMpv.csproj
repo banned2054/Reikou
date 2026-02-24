@@ -7,14 +7,18 @@
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+		<PublishTrimmed>true</PublishTrimmed>
+		<TrimMode>link</TrimMode>
+		<OptimizationPreference>Size</OptimizationPreference>
 	</PropertyGroup>
-
+	
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-		<SelfContained>true</SelfContained>
 		<PublishAot>true</PublishAot>
-		<PublishSingleFile>true</PublishSingleFile>
-		<StripSymbols>true</StripSymbols>
+		<SelfContained>true</SelfContained>
+		<TrimMode>link</TrimMode>
+		<PublishTrimmed>true</PublishTrimmed>
+		<StripSymbols>false</StripSymbols>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Avalonia" Version="11.3.9" />
@@ -38,5 +42,8 @@
 	</ItemGroup>
 	<ItemGroup>
 		<AvaloniaResource Include="Assets\**" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Views\" />
 	</ItemGroup>
 </Project>

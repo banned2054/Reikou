@@ -3,9 +3,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
-using Serilog;
 using System;
-using System.Linq;
 using TestMpv.ViewModels;
 
 namespace TestMpv;
@@ -32,9 +30,13 @@ public partial class MainWindow : Window
     private bool             _isMousePhysicallyDown;
     private int              _clickCount;
     private DispatcherTimer? _clickResetTimer;
-    private DispatcherTimer? _longPressTimer; // [修正] 改为类成员变量，以便取消
+    private DispatcherTimer? _longPressTimer;
 
-    // --- 记录原始倍速 ---
+    private       DateTime         _lastMouseMoveTime;
+    private       DispatcherTimer? _uiVisibilityTimer;
+    private const double           HideDelaySeconds = 1;
+
+    // --- 播放器状态 ---
     private double _originalSpeed = 1.0;
 
     public MainWindow()
@@ -45,41 +47,44 @@ public partial class MainWindow : Window
 
         InitializeEvents();
         StartSyncTimer();
+        StartUiVisibilityTimer(); // 启动UI显示检测定时器
     }
+
+    #region 初始化与核心定时器
 
     private void InitializeEvents()
     {
-        // 拖拽文件
+        // 拖拽文件支持
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
-
-        // 进度条防冲突
-        TimeSlider.AddHandler(PointerPressedEvent, (_, _) =>
-        {
-            _isDraggingSlider = true;
-            Log.Debug("Slider drag start");
-        }, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
+        // 进度条交互：防止进度条更新与用户拖拽冲突 [cite: 2]
+        TimeSlider.AddHandler(PointerPressedEvent, (_, _) => { _isDraggingSlider = true; },
+                              RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
         TimeSlider.AddHandler(PointerReleasedEvent, OnSliderPointerReleased,
                               RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
 
-        // 键盘
+        // 窗口输入事件
         KeyDown += OnWindowKeyDown;
         KeyUp   += OnWindowKeyUp;
 
-        // [修正] 初始化长按检测定时器
+        // 初始化鼠标长按检测
         _longPressTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(LongPressDelayMs) };
-        _longPressTimer.Tick += (s, e) =>
+        _longPressTimer.Tick += (_, _) =>
         {
-            _longPressTimer.Stop(); // 触发一次后自动停止
-            if (_isMousePhysicallyDown)
-            {
-                StartMouseLongPress();
-            }
+            _longPressTimer.Stop();
+            if (_isMousePhysicallyDown) StartMouseLongPress();
+        };
+
+        // 播放器事件回调
+        Player.FileLoaded += (_, fileName) =>
+        {
+            Dispatcher.UIThread.Post(() => { VideoText.Text = fileName; }); // 更新 UI 标题 [cite: 2]
         };
     }
 
     private void StartSyncTimer()
     {
+        // 负责 UI 状态同步（进度条、播放速度显示等）
         DispatcherTimer.Run(() =>
         {
             if (_isDraggingSlider) return true;
@@ -101,46 +106,58 @@ public partial class MainWindow : Window
         }, TimeSpan.FromMilliseconds(200));
     }
 
-    #region 播放控制 (Play/Pause/Slider)
+    private void StartUiVisibilityTimer()
+    {
+        _lastMouseMoveTime = DateTime.Now;
+
+        // 每 500ms 检查一次是否需要隐藏 UI（比频繁启停 Timer 性能更好）
+        _uiVisibilityTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _uiVisibilityTimer.Tick += (_, _) =>
+        {
+            // 条件1：鼠标悬浮在控制面板上（OverlayControls）
+            // 条件2：正在拖拽进度条
+            if (OverlayControls.IsPointerOver || _isDraggingSlider)
+            {
+                // 只要满足上述条件，就不断刷新最后活动时间，防止隐藏
+                _lastMouseMoveTime = DateTime.Now;
+                return;
+            }
+
+            // 判断距离最后一次移动鼠标是否超过了设定的秒数
+            if ((DateTime.Now - _lastMouseMoveTime).TotalSeconds >= HideDelaySeconds)
+            {
+                if (OverlayControls.Opacity > 0)
+                {
+                    HideOverlay();
+                }
+            }
+        };
+        _uiVisibilityTimer.Start();
+    }
+
+    #endregion
+
+    #region 播放控制逻辑
 
     private void OnPlayPauseClick(object sender, RoutedEventArgs e) => Player.TogglePause();
 
     private void OnSliderValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
     {
-        if (_isDraggingSlider) Player.SeekFast(e.NewValue);
+        if (_isDraggingSlider) Player.SeekFast(e.NewValue); // 拖动时使用快速跳转 [cite: 3]
     }
 
     private void OnSliderPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         if (!_isDraggingSlider) return;
 
-        Player.Seek(_viewModel.CurrentTime);
+        Player.Seek(_viewModel.CurrentTime); // 释放时进行精确跳转 [cite: 2, 3]
         _updateTimerCooldown = 5;
         Dispatcher.UIThread.Post(() => _isDraggingSlider = false);
     }
 
     #endregion
 
-    #region 文件拖拽 (Drag & Drop)
-
-    private void OnDragOver(object? sender, DragEventArgs e)
-    {
-        e.DragEffects = e.Data.Contains(DataFormats.Files) ? DragDropEffects.Link : DragDropEffects.None;
-    }
-
-    private async void OnDrop(object? sender, DragEventArgs e)
-    {
-        var files     = e.Data.GetFiles();
-        var firstFile = files?.FirstOrDefault()?.Path.LocalPath;
-        if (!string.IsNullOrEmpty(firstFile))
-        {
-            await Player.LoadFileAsync(firstFile);
-        }
-    }
-
-    #endregion
-
-    #region 键盘交互 (Short seek / Long press fast-forward)
+    #region 键盘与鼠标交互 (长按倍速/快进)
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
@@ -163,8 +180,7 @@ public partial class MainWindow : Window
             if (_isFastForwarding)
             {
                 double dir = e.Key == Key.Right ? 1 : -1;
-                Player.Service?.Command($"seek {dir * _viewModel.LongPressJumpSpeed} relative+keyframes");
-                Player.Service?.Command($"show-text \"{(dir > 0 ? ">>" : "<<")} 快速搜索\"");
+                Player.Service?.Command($"seek {dir * 2} relative+keyframes"); // 长按快进逻辑 [cite: 2]
             }
         }
         else
@@ -182,10 +198,7 @@ public partial class MainWindow : Window
 
         if (e.Key == _currentHeldKey)
         {
-            if (_isFastForwarding)
-            {
-                StopKeyFastForward();
-            }
+            if (_isFastForwarding) StopKeyFastForward();
             else
             {
                 double dir = e.Key == Key.Right ? 1 : -1;
@@ -208,12 +221,7 @@ public partial class MainWindow : Window
     {
         _isFastForwarding = false;
         Player.Service?.SetProperty("speed", _originalSpeed);
-        Player.Service?.Command("show-text \"恢复播放\"");
     }
-
-    #endregion
-
-    #region 鼠标交互 (Double Click / Long Press Speed)
 
     private void OnVideoPointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -222,59 +230,39 @@ public partial class MainWindow : Window
 
         _mousePressTime        = DateTime.Now;
         _isMousePhysicallyDown = true;
-
-        // [修正] 重置并启动长按计时器
-        _longPressTimer?.Stop();
-        _longPressTimer?.Start();
+        _longPressTimer?.Start(); // 开启长按判定 [cite: 2]
     }
 
     private void OnVideoPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        // [修正] 关键点：松开鼠标时，立即扼杀长按计时器
-        // 这样即使 500ms 到了，Tick 事件也不会触发
         _longPressTimer?.Stop();
-
         _isMousePhysicallyDown = false;
 
-        if (_isMouseLongPressing)
+        if (_isMouseLongPressing) StopMouseLongPress();
+        else if ((DateTime.Now - _mousePressTime).TotalMilliseconds < LongPressDelayMs)
         {
-            StopMouseLongPress();
-        }
-        else
-        {
-            if ((DateTime.Now - _mousePressTime).TotalMilliseconds < LongPressDelayMs)
-            {
-                HandleClickOrDoubleClick();
-            }
+            HandleClickOrDoubleClick();
         }
     }
 
     private void StartMouseLongPress()
     {
-        // 再次确认状态，防止极端的竞态条件
         if (!_isMousePhysicallyDown) return;
-
         _isMouseLongPressing = true;
         _originalSpeed       = Player.Service?.GetProperty<double>("speed") ?? 1.0;
-        Player.Service?.SetProperty("speed", 2.0);
-        Player.Service?.Command("show-text \"倍速播放 2.0x\"");
+        Player.Service?.SetProperty("speed", 2.0); // 触发2倍速播放 [cite: 2]
     }
 
     private void StopMouseLongPress()
     {
         _isMouseLongPressing = false;
         Player.Service?.SetProperty("speed", _originalSpeed);
-        Player.Service?.Command("show-text \"恢复播放\"");
     }
 
     private void HandleClickOrDoubleClick()
     {
         _clickCount++;
-
-        if (_clickCount % 2 == 0)
-        {
-            Player.TogglePause();
-        }
+        if (_clickCount % 2 == 0) Player.TogglePause();
 
         _clickResetTimer?.Stop();
         _clickResetTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
@@ -284,6 +272,75 @@ public partial class MainWindow : Window
             _clickResetTimer.Stop();
         };
         _clickResetTimer.Start();
+    }
+
+    #endregion
+
+    #region 文件处理与弹幕加载
+
+    private void OnDragOver(object? sender, DragEventArgs e)
+    {
+        // 修复过时：e.Data 改为 e.DataTransfer，DataFormats.Files 改为 DataFormat.File
+        e.DragEffects = e.DataTransfer.Contains(DataFormat.File)
+            ? DragDropEffects.Link
+            : DragDropEffects.None;
+    }
+
+    private async void OnDrop(object? sender, DragEventArgs e)
+    {
+        // 1. 调用异步扩展方法获取文件列表
+        // 需要引用 using Avalonia.Input;
+        var files = e.DataTransfer.TryGetFile();
+
+        // 2. 获取第一个文件
+        var firstFile = files?.Path.LocalPath;
+
+        if (string.IsNullOrEmpty(firstFile)) return;
+
+        var extension = System.IO.Path.GetExtension(firstFile).ToLower();
+        if (IsVideoFile(extension)) await Player.LoadFileAsync(firstFile);
+        else if (IsSubtitleFile(extension)) await Player.LoadSubtitleAsync(firstFile);
+    }
+
+    private bool IsVideoFile(string    ext) => new[] { ".mp4", ".mkv", ".avi", ".mov", ".flv" }.Contains(ext);
+    private bool IsSubtitleFile(string ext) => new[] { ".ass", ".srt", ".vtt", ".sub" }.Contains(ext);
+
+    #endregion
+
+    #region 鼠标移动与 UI 隐藏显示控制
+
+    private void OnWindowPointerMoved(object? sender, PointerEventArgs e)
+    {
+        _lastMouseMoveTime = DateTime.Now;
+
+        // 如果当前是隐藏状态，则唤醒它
+        if (OverlayControls.Opacity < 1.0)
+        {
+            ShowOverlay();
+        }
+    }
+
+    private void OnWindowPointerExited(object? sender, PointerEventArgs e)
+    {
+        // 鼠标移出软件窗口时，如果鼠标不在控制面板上，直接隐藏（优化体验）
+        if (!OverlayControls.IsPointerOver && !_isDraggingSlider)
+        {
+            HideOverlay();
+        }
+    }
+
+    private void ShowOverlay()
+    {
+        OverlayControls.Opacity          = 1.0;
+        OverlayControls.IsHitTestVisible = true;           // 允许点击
+        this.Cursor                      = Cursor.Default; // 恢复显示鼠标指针
+    }
+
+    private void HideOverlay()
+    {
+        OverlayControls.Opacity          = 0.0;
+        OverlayControls.IsHitTestVisible = false;                               // 防止透明状态下误触
+        this.Cursor                      = new Cursor(StandardCursorType.None); // 隐藏鼠标指针
     }
 
     #endregion

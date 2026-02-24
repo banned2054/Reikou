@@ -21,7 +21,7 @@ internal class Program
         Log.Logger = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .WriteTo.Console()
-                    .WriteTo.File("logs/myapp-.txt", rollingInterval : RollingInterval.Day)
+                    .WriteTo.File("logs/myapp-.log", rollingInterval : RollingInterval.Day)
                     .CreateLogger();
         try
         {
