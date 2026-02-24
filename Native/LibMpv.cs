@@ -116,6 +116,11 @@ public static partial class LibMpv
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate nint MpvGetProcAddressFn(nint ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
 
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [LibraryImport("libmpv-2.dll", EntryPoint = "mpv_render_context_update")]
+    private static partial MpvRenderUpdateFlag MpvRenderContextUpdate(nint ctx);
+
+
     // --- 包装方法 ---
     public static nint      Create()                                      => MpvCreate();
     public static nint      CreateClient(nint  mpvHandle, string command) => MpvCreateClient(mpvHandle, command);
@@ -191,6 +196,8 @@ public static partial class LibMpv
 
     public static MpvStatus RenderContextRender(nint ctx, ReadOnlySpan<MpvRenderParam> paramsArray) =>
         MpvRenderContextRender(ctx, paramsArray);
+
+    public static MpvRenderUpdateFlag RenderContextUpdate(nint ctx) => MpvRenderContextUpdate(ctx);
 
     public static string[] ConvertFromUtf8Strings(nint utf8StringArray, int stringCount)
     {

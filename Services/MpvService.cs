@@ -37,7 +37,15 @@ public class MpvService : IDisposable
 
         // 1. 包装委托
         _getProcAddressDelegate = (ctx, name) => getProcAddress(name);
-        _updateCallbackDelegate = _ => updateCallback();
+        _updateCallbackDelegate = _ =>
+        {
+            var flags = LibMpv.RenderContextUpdate(_renderContext);
+
+            if ((flags & MpvRenderUpdateFlag.Frame) != 0)
+            {
+                updateCallback();
+            }
+        };
 
         // 2. 准备初始化参数 (使用 Marshal 分配内存，这是原版最稳妥的做法)
         var glInitParams = new MpvOpenglInitParams
@@ -117,11 +125,9 @@ public class MpvService : IDisposable
     public void Command(string command)
     {
         if (_disposed) return;
-        Task.Run(() =>
-        {
-            var err = LibMpv.CommandString(_handle, command);
-            if (err < 0) HandleError(err, $"Command failed: {command}");
-        });
+        var err = LibMpv.CommandString(_handle, command);
+        if (err < 0)
+            HandleError(err, $"Command failed: {command}");
     }
 
     public T? GetProperty<T>(string name)
