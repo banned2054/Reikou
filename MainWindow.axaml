@@ -4,13 +4,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:testMpv="clr-namespace:TestMpv"
         xmlns:vm="clr-namespace:TestMpv.ViewModels"
+        xmlns:controls="clr-namespace:TestMpv.Views.Controls"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="TestMpv.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="TestMpv"
-        DragDrop.AllowDrop="True"
-        PointerMoved="OnWindowPointerMoved"
-        PointerExited="OnWindowPointerExited">
+        DragDrop.AllowDrop="True">
 
     <Window.Styles>
         <Style Selector="Button.IconButton">
@@ -41,83 +40,17 @@
                PointerPressed="OnVideoPointerPressed"
                PointerReleased="OnVideoPointerReleased" />
 
-        <Grid x:Name="OverlayControls" RowDefinitions="Auto,*,Auto">
-            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Height="60" VerticalAlignment="Top">
-                <!-- 添加过渡动画，让隐藏和显示变得平滑 -->
-                <Grid.Transitions>
-                    <Transitions>
-                        <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
-                    </Transitions>
-                </Grid.Transitions>
-                <Grid.Background>
-                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
-                        <GradientStop Offset="0" Color="#99000000" />
-                        <GradientStop Offset="1" Color="#00000000" />
-                    </LinearGradientBrush>
-                </Grid.Background>
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="15,0">
-                    <TextBlock x:Name="VideoText"
-                               Text="TestMpv"
-                               VerticalAlignment="Center"
-                               Foreground="White"
-                               FontWeight="Bold" />
-                </StackPanel>
-            </Grid>
-
-            <Grid Grid.Row="2" RowDefinitions="Auto,Auto" VerticalAlignment="Bottom">
-                <Grid.Background>
-                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
-                        <GradientStop Offset="0" Color="#00000000" />
-                        <GradientStop Offset="1" Color="#CC000000" />
-                    </LinearGradientBrush>
-                </Grid.Background>
-
-                <Slider Grid.Row="0" x:Name="TimeSlider"
-                        Margin="10,0"
-                        Value="{Binding CurrentTime, Mode=TwoWay}"
-                        Maximum="{Binding Duration}"
-                        Minimum="0"
-                        Focusable="False"
-                        ValueChanged="OnSliderValueChanged">
-                </Slider>
-
-                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="10,0,10,10">
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                        <Button Click="OnPlayPauseClick" Classes="IconButton" Width="32" Height="32">
-                            <Panel>
-                                <Svg Path="/Assets/ico-backward.svg" Stretch="Uniform" />
-                            </Panel>
-                        </Button>
-                        <Button Click="OnPlayPauseClick" Classes="IconButton" Width="32" Height="32">
-                            <Panel>
-                                <Svg Path="/Assets/ico-play.svg" IsVisible="{Binding !IsPlaying}" Stretch="Uniform" />
-                                <Svg Path="/Assets/ico-pause.svg" IsVisible="{Binding IsPlaying}" Stretch="Uniform" />
-                            </Panel>
-                        </Button>
-                        <Button Click="OnPlayPauseClick" Classes="IconButton" Width="32" Height="32">
-                            <Panel>
-                                <Svg Path="/Assets/ico-forward.svg" Stretch="Uniform" />
-                            </Panel>
-                        </Button>
-                        <TextBlock Text="{Binding TimeText}" Foreground="White" VerticalAlignment="Center"
-                                   FontSize="12" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center">
-                        <Button Click="OnPlayPauseClick" Classes="IconButton" Width="32" Height="32">
-                            <Panel>
-                                <Svg Path="/Assets/ico-danmu-switch-on.svg" IsVisible="{Binding !IsPlaying}"
-                                     Stretch="Uniform" />
-                                <Svg Path="/Assets/ico-danmu-switch-off.svg" IsVisible="{Binding IsPlaying}"
-                                     Stretch="Uniform" />
-                            </Panel>
-                        </Button>
-                        <Button Content="{Binding PlaybackSpeed, StringFormat=\{0:0.0\}x}"
-                                Background="Transparent" Foreground="White"
-                                Focusable="False" FontWeight="Bold" Padding="5" />
-                    </StackPanel>
-                </Grid>
-            </Grid>
-        </Grid>
+        <controls:VideoOverlayControl x:Name="OverlayControls"
+                                      CurrentTime="{Binding CurrentTime, Mode=TwoWay}"
+                                      Duration="{Binding Duration}"
+                                      IsPlaying="{Binding IsPlaying}"
+                                      TimeText="{Binding TimeText}"
+                                      PlaybackSpeed="{Binding PlaybackSpeed}"
+                                      Volume="{Binding Volume, Mode=TwoWay}"
+                                      IsMuted="{Binding IsMuted}"
+                                      PlayPauseRequested="OnPlayPauseClick"
+                                      SeekStarted="OnSeekStarted"
+                                      SeekEnded="OnSeekEnded"
+                                      SeekMoved="OnSeekMoved" />
     </Panel>
 </Window>

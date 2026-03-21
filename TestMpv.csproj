@@ -11,7 +11,7 @@
 		<TrimMode>link</TrimMode>
 		<OptimizationPreference>Size</OptimizationPreference>
 	</PropertyGroup>
-	
+
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<PublishAot>true</PublishAot>
@@ -36,14 +36,11 @@
 		<PackageReference Include="Svg.Controls.Skia.Avalonia" Version="11.3.9.2" />
 	</ItemGroup>
 	<ItemGroup>
-		<None Include="Libs\libmpv-2.dll">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
-	<ItemGroup>
 		<AvaloniaResource Include="Assets\**" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="Views\" />
+		<None Include="Libs\libmpv-2.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 </Project>

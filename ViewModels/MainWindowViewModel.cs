@@ -13,8 +13,23 @@ internal class MainWindowViewModel : INotifyPropertyChanged
     private bool   _isPlaying;
     private double _playbackSpeed      = 1.0;
     private double _longPressJumpSpeed = 0.5;
+    private double _volume             = 100.0;
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public double Volume
+    {
+        get => _volume;
+        set
+        {
+            if (SetField(ref _volume, value))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsMuted)));
+            }
+        }
+    }
+
+    public bool IsMuted => _volume == 0;
 
     public double LongPressJumpSpeed
     {

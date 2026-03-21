@@ -42,12 +42,21 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        _viewModel  = new MainWindowViewModel();
-        DataContext = _viewModel;
+        _viewModel                 =  new MainWindowViewModel();
+        _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        DataContext                =  _viewModel;
 
         InitializeEvents();
         StartSyncTimer();
         StartUiVisibilityTimer(); // 启动UI显示检测定时器
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainWindowViewModel.Volume))
+        {
+            Player.Service?.SetProperty("volume", _viewModel.Volume);
+        }
     }
 
     #region 初始化与核心定时器
@@ -57,15 +66,14 @@ public partial class MainWindow : Window
         // 拖拽文件支持
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
-        // 进度条交互：防止进度条更新与用户拖拽冲突 [cite: 2]
-        TimeSlider.AddHandler(PointerPressedEvent, (_, _) => { _isDraggingSlider = true; },
-                              RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
-        TimeSlider.AddHandler(PointerReleasedEvent, OnSliderPointerReleased,
-                              RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
 
         // 窗口输入事件
         KeyDown += OnWindowKeyDown;
         KeyUp   += OnWindowKeyUp;
+
+        // 全局鼠标事件（使用 Tunnel 策略，防止被 Popup/LightDismiss 拦截）
+        AddHandler(PointerMovedEvent, OnWindowPointerMoved, RoutingStrategies.Tunnel   | RoutingStrategies.Bubble);
+        AddHandler(PointerExitedEvent, OnWindowPointerExited, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
 
         // 初始化鼠标长按检测
         _longPressTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(LongPressDelayMs) };
@@ -78,7 +86,7 @@ public partial class MainWindow : Window
         // 播放器事件回调
         Player.FileLoaded += (_, fileName) =>
         {
-            Dispatcher.UIThread.Post(() => { VideoText.Text = fileName; }); // 更新 UI 标题 [cite: 2]
+            Dispatcher.UIThread.Post(() => { OverlayControls.Title = fileName; }); // 更新 UI 标题 [cite: 2]
         };
     }
 
@@ -100,6 +108,7 @@ public partial class MainWindow : Window
                 _viewModel.CurrentTime   = Player.Position;
                 _viewModel.IsPlaying     = Player.IsPlaying;
                 _viewModel.PlaybackSpeed = Player.Service.GetProperty<double>("speed");
+                _viewModel.Volume        = Player.Service.GetProperty<double>("volume");
             }
 
             return true;
@@ -116,7 +125,8 @@ public partial class MainWindow : Window
         {
             // 条件1：鼠标悬浮在控制面板上（OverlayControls）
             // 条件2：正在拖拽进度条
-            if (OverlayControls.IsPointerOver || _isDraggingSlider)
+            // 条件3：鼠标悬浮在音量面板上
+            if (OverlayControls.IsPointerOver || _isDraggingSlider || OverlayControls.IsPointerOverFlyout)
             {
                 // 只要满足上述条件，就不断刷新最后活动时间，防止隐藏
                 _lastMouseMoveTime = DateTime.Now;
@@ -126,7 +136,7 @@ public partial class MainWindow : Window
             // 判断距离最后一次移动鼠标是否超过了设定的秒数
             if ((DateTime.Now - _lastMouseMoveTime).TotalSeconds >= HideDelaySeconds)
             {
-                if (OverlayControls.Opacity > 0)
+                if (OverlayControls.Opacity > 0 || OverlayControls.IsVolumeFlyoutOpen)
                 {
                     HideOverlay();
                 }
@@ -139,20 +149,25 @@ public partial class MainWindow : Window
 
     #region 播放控制逻辑
 
-    private void OnPlayPauseClick(object sender, RoutedEventArgs e) => Player.TogglePause();
+    private void OnPlayPauseClick(object? sender, RoutedEventArgs e) => Player.TogglePause();
 
-    private void OnSliderValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    private void OnSeekStarted(object? sender, RoutedEventArgs e)
     {
-        if (_isDraggingSlider) Player.SeekFast(e.NewValue); // 拖动时使用快速跳转 [cite: 3]
+        _isDraggingSlider = true;
     }
 
-    private void OnSliderPointerReleased(object? sender, PointerReleasedEventArgs e)
+    private void OnSeekEnded(object? sender, RoutedEventArgs e)
     {
         if (!_isDraggingSlider) return;
 
         Player.Seek(_viewModel.CurrentTime); // 释放时进行精确跳转 [cite: 2, 3]
         _updateTimerCooldown = 5;
         Dispatcher.UIThread.Post(() => _isDraggingSlider = false);
+    }
+
+    private void OnSeekMoved(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_isDraggingSlider) Player.SeekFast(e.NewValue); // 拖动时使用快速跳转 [cite: 3]
     }
 
     #endregion
@@ -309,8 +324,20 @@ public partial class MainWindow : Window
 
     #region 鼠标移动与 UI 隐藏显示控制
 
+    private Avalonia.Point _lastMousePosition;
+
     private void OnWindowPointerMoved(object? sender, PointerEventArgs e)
     {
+        var currentPosition = e.GetPosition(this);
+        // 忽略因为控件隐藏/显示导致的虚假鼠标移动事件
+        if (Math.Abs(currentPosition.X - _lastMousePosition.X) < 1.0 &&
+            Math.Abs(currentPosition.Y - _lastMousePosition.Y) < 1.0)
+        {
+            return;
+        }
+
+        _lastMousePosition = currentPosition;
+
         _lastMouseMoveTime = DateTime.Now;
 
         // 如果当前是隐藏状态，则唤醒它
@@ -322,11 +349,22 @@ public partial class MainWindow : Window
 
     private void OnWindowPointerExited(object? sender, PointerEventArgs e)
     {
-        // 鼠标移出软件窗口时，如果鼠标不在控制面板上，直接隐藏（优化体验）
-        if (!OverlayControls.IsPointerOver && !_isDraggingSlider)
+        var pos = e.GetPosition(this);
+        // 检查是否真的离开了窗口物理范围，如果还在窗口内部（例如进入了Popup或遮罩层），则忽略
+        if (pos.X > 0 && pos.X < this.Bounds.Width && pos.Y > 0 && pos.Y < this.Bounds.Height)
         {
-            HideOverlay();
+            return;
         }
+
+        // 鼠标移出软件窗口时，如果鼠标不在控制面板上，直接隐藏（优化体验）
+        // 延时一下判断，防止由于鼠标移入Popup（Flyout）导致短暂的触发Exited
+        DispatcherTimer.RunOnce(() =>
+        {
+            if (!OverlayControls.IsPointerOver && !_isDraggingSlider && !OverlayControls.IsPointerOverFlyout)
+            {
+                HideOverlay();
+            }
+        }, TimeSpan.FromMilliseconds(100));
     }
 
     private void ShowOverlay()
@@ -339,8 +377,9 @@ public partial class MainWindow : Window
     private void HideOverlay()
     {
         OverlayControls.Opacity          = 0.0;
-        OverlayControls.IsHitTestVisible = false;                               // 防止透明状态下误触
-        this.Cursor                      = new Cursor(StandardCursorType.None); // 隐藏鼠标指针
+        OverlayControls.IsHitTestVisible = false;          // 防止透明状态下误触
+        OverlayControls.HideFlyouts();                     // 关闭音量等所有Flyout面板
+        this.Cursor = new Cursor(StandardCursorType.None); // 隐藏鼠标指针
     }
 
     #endregion

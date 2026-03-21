@@ -1,0 +1,135 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:TestMpv.Views.Controls">
+
+    <Design.PreviewWith>
+        <Border Padding="20" Background="Black" Width="800" Height="200">
+            <controls:VideoOverlayControl Title="Test Video" CurrentTime="10" Duration="100" TimeText="00:10 / 01:40" />
+        </Border>
+    </Design.PreviewWith>
+
+    <ControlTheme x:Key="{x:Type controls:VideoOverlayControl}" TargetType="controls:VideoOverlayControl">
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid x:Name="OverlayControls" RowDefinitions="Auto,*,Auto">
+                    <Grid.Styles>
+                        <Style Selector="FlyoutPresenter.VolumeFlyout">
+                            <Setter Property="Background" Value="#CC000000" />
+                            <Setter Property="BorderBrush" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="CornerRadius" Value="8" />
+                            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Hidden" />
+                            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Hidden" />
+                        </Style>
+                    </Grid.Styles>
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Height="60" VerticalAlignment="Top">
+                        <Grid.Background>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                <GradientStop Offset="0" Color="#99000000" />
+                                <GradientStop Offset="1" Color="#00000000" />
+                            </LinearGradientBrush>
+                        </Grid.Background>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="15,0">
+                            <TextBlock x:Name="VideoText"
+                                       Text="{TemplateBinding Title}"
+                                       VerticalAlignment="Center"
+                                       Foreground="White"
+                                       FontWeight="Bold" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="2" RowDefinitions="Auto,Auto" VerticalAlignment="Bottom">
+                        <Grid.Background>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                <GradientStop Offset="0" Color="#00000000" />
+                                <GradientStop Offset="1" Color="#CC000000" />
+                            </LinearGradientBrush>
+                        </Grid.Background>
+
+                        <Slider Grid.Row="0" x:Name="PART_TimeSlider"
+                                Margin="10,0"
+                                Value="{TemplateBinding CurrentTime, Mode=TwoWay}"
+                                Maximum="{TemplateBinding Duration}"
+                                Minimum="0"
+                                Focusable="False">
+                        </Slider>
+
+                        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="10,0,10,10">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10"
+                                        VerticalAlignment="Center">
+                                <Button x:Name="PART_BackwardButton" Classes="IconButton" Width="32" Height="32">
+                                    <Panel>
+                                        <Svg Path="avares://TestMpv/Assets/ico-backward.svg" Stretch="Uniform" />
+                                    </Panel>
+                                </Button>
+                                <Button x:Name="PART_PlayPauseButton" Classes="IconButton" Width="32" Height="32">
+                                    <Panel>
+                                        <Svg Path="avares://TestMpv/Assets/ico-play.svg"
+                                             IsVisible="{Binding !IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
+                                             Stretch="Uniform" />
+                                        <Svg Path="avares://TestMpv/Assets/ico-pause.svg"
+                                             IsVisible="{Binding IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
+                                             Stretch="Uniform" />
+                                    </Panel>
+                                </Button>
+                                <Button x:Name="PART_ForwardButton" Classes="IconButton" Width="32" Height="32">
+                                    <Panel>
+                                        <Svg Path="avares://TestMpv/Assets/ico-forward.svg" Stretch="Uniform" />
+                                    </Panel>
+                                </Button>
+                                <TextBlock Text="{TemplateBinding TimeText}" Foreground="White"
+                                           VerticalAlignment="Center"
+                                           FontSize="12" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="15"
+                                        VerticalAlignment="Center">
+                                <Button x:Name="PART_VolumeButton" Classes="IconButton" Width="32" Height="32">
+                                    <Button.Flyout>
+                                        <Flyout Placement="Top" FlyoutPresenterClasses="VolumeFlyout">
+                                            <Border x:Name="PART_VolumeFlyoutBorder" Padding="0,15">
+                                                <Slider Orientation="Vertical"
+                                                        Height="100"
+                                                        Minimum="0" Maximum="200"
+                                                        Value="{Binding Volume, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
+                                            </Border>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                    <Panel>
+                                        <Svg Path="avares://TestMpv/Assets/ico-volume-off.svg"
+                                             IsVisible="{Binding IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
+                                             Stretch="Uniform" />
+                                        <Svg Path="avares://TestMpv/Assets/ico-volume.svg"
+                                             IsVisible="{Binding !IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
+                                             Stretch="Uniform" />
+                                    </Panel>
+                                </Button>
+                                <Button x:Name="PART_DanmuButton" Classes="IconButton" Width="32" Height="32">
+                                    <Panel>
+                                        <Svg Path="avares://TestMpv/Assets/ico-danmaku-switch-on.svg"
+                                             IsVisible="{Binding !IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
+                                             Stretch="Uniform" />
+                                        <Svg Path="avares://TestMpv/Assets/ico-danmaku-switch-off.svg"
+                                             IsVisible="{Binding IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
+                                             Stretch="Uniform" />
+                                    </Panel>
+                                </Button>
+                                <Button
+                                    Content="{Binding PlaybackSpeed, RelativeSource={RelativeSource TemplatedParent}, StringFormat=\{0:0.0\}x}"
+                                    Background="Transparent" Foreground="White"
+                                    Focusable="False" FontWeight="Bold" Padding="5" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+</ResourceDictionary>
