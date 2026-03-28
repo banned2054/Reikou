@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
 
 namespace TestMpv.ViewModels;
 
@@ -16,6 +17,14 @@ internal class MainWindowViewModel : INotifyPropertyChanged
     private double _volume             = 100.0;
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    // --- Commands ---
+    public ICommand PlayPauseCommand { get; set; } = null!;
+    public ICommand BackwardCommand { get; set; } = null!;
+    public ICommand ForwardCommand { get; set; } = null!;
+    public ICommand ToggleMuteCommand { get; set; } = null!;
+    public ICommand ToggleDanmakuCommand { get; set; } = null!;
+    public ICommand ChangeSpeedCommand { get; set; } = null!;
 
     public double Volume
     {

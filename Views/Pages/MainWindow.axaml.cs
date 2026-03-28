@@ -46,9 +46,47 @@ public partial class MainWindow : Window
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         DataContext                =  _viewModel;
 
+        InitializeCommands();
         InitializeEvents();
         StartSyncTimer();
         StartUiVisibilityTimer(); // 启动UI显示检测定时器
+    }
+
+    private double _lastVolume = 100.0;
+
+    private void InitializeCommands()
+    {
+        _viewModel.PlayPauseCommand = new RelayCommand(_ => Player.TogglePause());
+        _viewModel.BackwardCommand = new RelayCommand(_ => Player.Service?.Command("seek -5 relative"));
+        _viewModel.ForwardCommand = new RelayCommand(_ => Player.Service?.Command("seek 5 relative"));
+        
+        _viewModel.ToggleMuteCommand = new RelayCommand(_ =>
+        {
+            if (_viewModel.Volume > 0)
+            {
+                _lastVolume = _viewModel.Volume;
+                _viewModel.Volume = 0;
+            }
+            else
+            {
+                _viewModel.Volume = _lastVolume > 0 ? _lastVolume : 100.0;
+            }
+        });
+
+        _viewModel.ToggleDanmakuCommand = new RelayCommand(_ =>
+        {
+            // TODO: Implement Danmaku toggle logic
+        });
+
+        _viewModel.ChangeSpeedCommand = new RelayCommand(_ =>
+        {
+            var speeds = new[] { 0.5, 1.0, 1.25, 1.5, 2.0 };
+            var currentSpeed = Player.Service?.GetProperty<double>("speed") ?? 1.0;
+            var idx = Array.IndexOf(speeds, currentSpeed);
+            if (idx == -1) idx = 1; // default to 1.0
+            var nextSpeed = speeds[(idx + 1) % speeds.Length];
+            Player.Service?.SetProperty("speed", nextSpeed);
+        });
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -151,8 +189,6 @@ public partial class MainWindow : Window
     #endregion
 
     #region 播放控制逻辑
-
-    private void OnPlayPauseClick(object? sender, RoutedEventArgs e) => Player.TogglePause();
 
     private void OnSeekStarted(object? sender, RoutedEventArgs e)
     {

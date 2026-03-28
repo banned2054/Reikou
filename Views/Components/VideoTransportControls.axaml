@@ -29,12 +29,17 @@
 
                     <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="10,0,10,10">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                            <Button x:Name="PART_BackwardButton" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_PreviousButton" Command="{TemplateBinding PreviousCommand}" Classes="IconButton" Width="32" Height="32">
+                                <Panel>
+                                    <Svg Path="avares://TestMpv/Assets/ico-previous.svg" Stretch="Uniform" />
+                                </Panel>
+                            </Button>
+                            <Button x:Name="PART_BackwardButton" Command="{TemplateBinding BackwardCommand}" Classes="IconButton" Width="32" Height="32">
                                 <Panel>
                                     <Svg Path="avares://TestMpv/Assets/ico-backward.svg" Stretch="Uniform" />
                                 </Panel>
                             </Button>
-                            <Button x:Name="PART_PlayPauseButton" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_PlayPauseButton" Command="{TemplateBinding PlayPauseCommand}" Classes="IconButton" Width="32" Height="32">
                                 <Panel>
                                     <Svg Path="avares://TestMpv/Assets/ico-play.svg"
                                          IsVisible="{Binding !IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
@@ -44,9 +49,14 @@
                                          Stretch="Uniform" />
                                 </Panel>
                             </Button>
-                            <Button x:Name="PART_ForwardButton" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_ForwardButton" Command="{TemplateBinding ForwardCommand}" Classes="IconButton" Width="32" Height="32">
                                 <Panel>
                                     <Svg Path="avares://TestMpv/Assets/ico-forward.svg" Stretch="Uniform" />
+                                </Panel>
+                            </Button>
+                            <Button x:Name="PART_NextButton" Command="{TemplateBinding NextCommand}" Classes="IconButton" Width="32" Height="32">
+                                <Panel>
+                                    <Svg Path="avares://TestMpv/Assets/ico-next.svg" Stretch="Uniform" />
                                 </Panel>
                             </Button>
                             <TextBlock Text="{TemplateBinding TimeText}" Foreground="White"
@@ -54,7 +64,7 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center">
-                            <Button x:Name="PART_VolumeButton" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_VolumeButton" Command="{TemplateBinding ToggleMuteCommand}" Classes="IconButton" Width="32" Height="32">
                                 <Button.Flyout>
                                     <Flyout Placement="Top" FlyoutPresenterClasses="VolumeFlyout">
                                         <Grid Width="46" Height="130">
@@ -78,7 +88,7 @@
                                          Stretch="Uniform" />
                                 </Panel>
                             </Button>
-                            <Button x:Name="PART_DanmuButton" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_DanmuButton" Command="{TemplateBinding ToggleDanmakuCommand}" Classes="IconButton" Width="32" Height="32">
                                 <Panel>
                                     <Svg Path="avares://TestMpv/Assets/ico-danmaku-switch-on.svg"
                                          IsVisible="{Binding !IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
@@ -89,6 +99,7 @@
                                 </Panel>
                             </Button>
                             <Button
+                                Command="{TemplateBinding ChangeSpeedCommand}"
                                 Content="{Binding PlaybackSpeed, RelativeSource={RelativeSource TemplatedParent}, StringFormat=\{0:0.0\}x}"
                                 Background="Transparent" Foreground="White" Focusable="False" FontWeight="Bold"
                                 Padding="5" />

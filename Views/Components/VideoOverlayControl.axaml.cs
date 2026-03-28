@@ -104,20 +104,66 @@ public class VideoOverlayControl : TemplatedControl
         set => SetValue(IsPointerOverFlyoutProperty, value);
     }
 
+    // --- Commands ---
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> PlayPauseCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(PlayPauseCommand));
+
+    public System.Windows.Input.ICommand? PlayPauseCommand
+    {
+        get => GetValue(PlayPauseCommandProperty);
+        set => SetValue(PlayPauseCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> BackwardCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(BackwardCommand));
+
+    public System.Windows.Input.ICommand? BackwardCommand
+    {
+        get => GetValue(BackwardCommandProperty);
+        set => SetValue(BackwardCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ForwardCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(ForwardCommand));
+
+    public System.Windows.Input.ICommand? ForwardCommand
+    {
+        get => GetValue(ForwardCommandProperty);
+        set => SetValue(ForwardCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleMuteCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(ToggleMuteCommand));
+
+    public System.Windows.Input.ICommand? ToggleMuteCommand
+    {
+        get => GetValue(ToggleMuteCommandProperty);
+        set => SetValue(ToggleMuteCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleDanmakuCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(ToggleDanmakuCommand));
+
+    public System.Windows.Input.ICommand? ToggleDanmakuCommand
+    {
+        get => GetValue(ToggleDanmakuCommandProperty);
+        set => SetValue(ToggleDanmakuCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ChangeSpeedCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(ChangeSpeedCommand));
+
+    public System.Windows.Input.ICommand? ChangeSpeedCommand
+    {
+        get => GetValue(ChangeSpeedCommandProperty);
+        set => SetValue(ChangeSpeedCommandProperty, value);
+    }
+
     // --- 属性：是否有指针在控件上（包括子元素） ---
     public bool IsPointerOverControl => _pointerOverCount > 0;
 
     // --- Routed Events ---
-
-    public static readonly RoutedEvent<RoutedEventArgs> PlayPauseRequestedEvent =
-        RoutedEvent.Register<VideoOverlayControl, RoutedEventArgs>(nameof(PlayPauseRequested),
-                                                                   RoutingStrategies.Bubble);
-
-    public event EventHandler<RoutedEventArgs> PlayPauseRequested
-    {
-        add => AddHandler(PlayPauseRequestedEvent, value);
-        remove => RemoveHandler(PlayPauseRequestedEvent, value);
-    }
 
     public static readonly RoutedEvent<RoutedEventArgs> SeekStartedEvent =
         RoutedEvent.Register<VideoOverlayControl, RoutedEventArgs>(nameof(SeekStarted), RoutingStrategies.Bubble);
@@ -166,7 +212,6 @@ public class VideoOverlayControl : TemplatedControl
         // Detach old events
         if (_transportControls != null)
         {
-            _transportControls.PlayPauseRequested -= OnPlayPauseClick;
             _transportControls.SeekStarted        -= OnSeekStartedFromTransport;
             _transportControls.SeekEnded          -= OnSeekEndedFromTransport;
             _transportControls.SeekMoved          -= OnSeekMovedFromTransport;
@@ -178,7 +223,6 @@ public class VideoOverlayControl : TemplatedControl
         // Attach new events
         if (_transportControls != null)
         {
-            _transportControls.PlayPauseRequested += OnPlayPauseClick;
             _transportControls.SeekStarted        += OnSeekStartedFromTransport;
             _transportControls.SeekEnded          += OnSeekEndedFromTransport;
             _transportControls.SeekMoved          += OnSeekMovedFromTransport;
@@ -198,11 +242,6 @@ public class VideoOverlayControl : TemplatedControl
 
     private void OnSeekMovedFromTransport(object? sender, RangeBaseValueChangedEventArgs e) =>
         RaiseEvent(new RangeBaseValueChangedEventArgs(e.OldValue, e.NewValue, SeekMovedEvent));
-
-    private void OnPlayPauseClick(object? sender, RoutedEventArgs e)
-    {
-        RaiseEvent(new RoutedEventArgs(PlayPauseRequestedEvent));
-    }
 
     private void OnControlPointerEntered(object? sender, PointerEventArgs e)
     {

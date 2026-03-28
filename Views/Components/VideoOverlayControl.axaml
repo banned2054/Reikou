@@ -62,7 +62,13 @@
                                                            Volume="{Binding Volume, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                                            IsMuted="{Binding IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
                                                            IsVolumeFlyoutOpen="{Binding IsVolumeFlyoutOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                                           IsPointerOverFlyout="{Binding IsPointerOverFlyout, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
+                                                           IsPointerOverFlyout="{Binding IsPointerOverFlyout, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                           PlayPauseCommand="{Binding PlayPauseCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                           BackwardCommand="{Binding BackwardCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                           ForwardCommand="{Binding ForwardCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                           ToggleMuteCommand="{Binding ToggleMuteCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                           ToggleDanmakuCommand="{Binding ToggleDanmakuCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                           ChangeSpeedCommand="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}" />
                     </Grid>
                 </Grid>
             </ControlTemplate>

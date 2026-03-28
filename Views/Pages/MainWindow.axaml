@@ -49,7 +49,12 @@
                                         PlaybackSpeed="{Binding PlaybackSpeed}"
                                         Volume="{Binding Volume, Mode=TwoWay}"
                                         IsMuted="{Binding IsMuted}"
-                                        PlayPauseRequested="OnPlayPauseClick"
+                                        PlayPauseCommand="{Binding PlayPauseCommand}"
+                                        BackwardCommand="{Binding BackwardCommand}"
+                                        ForwardCommand="{Binding ForwardCommand}"
+                                        ToggleMuteCommand="{Binding ToggleMuteCommand}"
+                                        ToggleDanmakuCommand="{Binding ToggleDanmakuCommand}"
+                                        ChangeSpeedCommand="{Binding ChangeSpeedCommand}"
                                         SeekStarted="OnSeekStarted"
                                         SeekEnded="OnSeekEnded"
                                         SeekMoved="OnSeekMoved" />

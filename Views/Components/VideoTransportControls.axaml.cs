@@ -66,7 +66,7 @@ public class VideoTransportControls : TemplatedControl
     }
 
     public static readonly StyledProperty<bool> IsMutedProperty =
-        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsMuted), false);
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsMuted));
 
     public bool IsMuted
     {
@@ -75,7 +75,7 @@ public class VideoTransportControls : TemplatedControl
     }
 
     public static readonly StyledProperty<bool> IsVolumeFlyoutOpenProperty =
-        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsVolumeFlyoutOpen), false);
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsVolumeFlyoutOpen));
 
     public bool IsVolumeFlyoutOpen
     {
@@ -84,7 +84,7 @@ public class VideoTransportControls : TemplatedControl
     }
 
     public static readonly StyledProperty<bool> IsPointerOverFlyoutProperty =
-        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsPointerOverFlyout), false);
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsPointerOverFlyout));
 
     public bool IsPointerOverFlyout
     {
@@ -92,17 +92,81 @@ public class VideoTransportControls : TemplatedControl
         set => SetValue(IsPointerOverFlyoutProperty, value);
     }
 
-    // --- Routed Events ---
+    // --- Commands ---
 
-    public static readonly RoutedEvent<RoutedEventArgs> PlayPauseRequestedEvent =
-        RoutedEvent.Register<VideoTransportControls, RoutedEventArgs>(nameof(PlayPauseRequested),
-                                                                      RoutingStrategies.Bubble);
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> PlayPauseCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(PlayPauseCommand));
 
-    public event EventHandler<RoutedEventArgs> PlayPauseRequested
+    public System.Windows.Input.ICommand? PlayPauseCommand
     {
-        add => AddHandler(PlayPauseRequestedEvent, value);
-        remove => RemoveHandler(PlayPauseRequestedEvent, value);
+        get => GetValue(PlayPauseCommandProperty);
+        set => SetValue(PlayPauseCommandProperty, value);
     }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> PreviousCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(PreviousCommand));
+
+    public System.Windows.Input.ICommand? PreviousCommand
+    {
+        get => GetValue(PreviousCommandProperty);
+        set => SetValue(PreviousCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> BackwardCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(BackwardCommand));
+
+    public System.Windows.Input.ICommand? BackwardCommand
+    {
+        get => GetValue(BackwardCommandProperty);
+        set => SetValue(BackwardCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ForwardCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ForwardCommand));
+
+    public System.Windows.Input.ICommand? ForwardCommand
+    {
+        get => GetValue(ForwardCommandProperty);
+        set => SetValue(ForwardCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> NextCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(NextCommand));
+
+    public System.Windows.Input.ICommand? NextCommand
+    {
+        get => GetValue(NextCommandProperty);
+        set => SetValue(NextCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleMuteCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ToggleMuteCommand));
+
+    public System.Windows.Input.ICommand? ToggleMuteCommand
+    {
+        get => GetValue(ToggleMuteCommandProperty);
+        set => SetValue(ToggleMuteCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleDanmakuCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ToggleDanmakuCommand));
+
+    public System.Windows.Input.ICommand? ToggleDanmakuCommand
+    {
+        get => GetValue(ToggleDanmakuCommandProperty);
+        set => SetValue(ToggleDanmakuCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ChangeSpeedCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ChangeSpeedCommand));
+
+    public System.Windows.Input.ICommand? ChangeSpeedCommand
+    {
+        get => GetValue(ChangeSpeedCommandProperty);
+        set => SetValue(ChangeSpeedCommandProperty, value);
+    }
+
+    // --- Routed Events ---
 
     public static readonly RoutedEvent<RoutedEventArgs> SeekStartedEvent =
         RoutedEvent.Register<VideoTransportControls, RoutedEventArgs>(nameof(SeekStarted), RoutingStrategies.Bubble);
@@ -135,9 +199,11 @@ public class VideoTransportControls : TemplatedControl
     // --- Template Parts ---
 
     private Slider? _timeSlider;
-    private Button? _playPauseButton;
+    private Button? _previousButton;
     private Button? _backwardButton;
+    private Button? _playPauseButton;
     private Button? _forwardButton;
+    private Button? _nextButton;
     private Button? _danmuButton;
     private Button? _volumeButton;
 
@@ -153,10 +219,6 @@ public class VideoTransportControls : TemplatedControl
             _timeSlider.ValueChanged -= OnSliderValueChanged;
         }
 
-        if (_playPauseButton != null) _playPauseButton.Click -= OnPlayPauseClick;
-        if (_backwardButton  != null) _backwardButton.Click  -= OnPlayPauseClick;
-        if (_forwardButton   != null) _forwardButton.Click   -= OnPlayPauseClick;
-        if (_danmuButton     != null) _danmuButton.Click     -= OnPlayPauseClick;
         if (_volumeButton is { Flyout: not null })
         {
             _volumeButton.Flyout.Opened -= OnVolumeFlyoutOpened;
@@ -170,9 +232,11 @@ public class VideoTransportControls : TemplatedControl
 
         // Find new parts
         _timeSlider      = e.NameScope.Find<Slider>("PART_TimeSlider");
-        _playPauseButton = e.NameScope.Find<Button>("PART_PlayPauseButton");
+        _previousButton  = e.NameScope.Find<Button>("PART_PreviousButton");
         _backwardButton  = e.NameScope.Find<Button>("PART_BackwardButton");
+        _playPauseButton = e.NameScope.Find<Button>("PART_PlayPauseButton");
         _forwardButton   = e.NameScope.Find<Button>("PART_ForwardButton");
+        _nextButton      = e.NameScope.Find<Button>("PART_NextButton");
         _danmuButton     = e.NameScope.Find<Button>("PART_DanmuButton");
         _volumeButton    = e.NameScope.Find<Button>("PART_VolumeButton");
 
@@ -186,10 +250,6 @@ public class VideoTransportControls : TemplatedControl
             _timeSlider.ValueChanged += OnSliderValueChanged;
         }
 
-        if (_playPauseButton != null) _playPauseButton.Click += OnPlayPauseClick;
-        if (_backwardButton  != null) _backwardButton.Click  += OnPlayPauseClick;
-        if (_forwardButton   != null) _forwardButton.Click   += OnPlayPauseClick;
-        if (_danmuButton     != null) _danmuButton.Click     += OnPlayPauseClick;
         if (_volumeButton is { Flyout: not null })
         {
             _volumeButton.Flyout.Opened += OnVolumeFlyoutOpened;
@@ -227,7 +287,4 @@ public class VideoTransportControls : TemplatedControl
 
     private void OnSliderValueChanged(object? sender, RangeBaseValueChangedEventArgs e) =>
         RaiseEvent(new RangeBaseValueChangedEventArgs(e.OldValue, e.NewValue, SeekMovedEvent));
-
-    private void OnPlayPauseClick(object? sender, RoutedEventArgs e) =>
-        RaiseEvent(new RoutedEventArgs(PlayPauseRequestedEvent));
 }
