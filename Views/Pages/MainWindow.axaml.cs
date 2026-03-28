@@ -124,8 +124,9 @@ public partial class MainWindow : Window
         _uiVisibilityTimer.Tick += (_, _) =>
         {
             // 只要满足下列任何一个条件，就不隐藏面板，并且刷新计时
-            if (OverlayControls.IsPointerOverControl || 
-                _isDraggingSlider || 
+            // 注意：IsVolumeFlyoutOpen 不在这里，因为音量面板打开但鼠标不在上面时，应该允许隐藏
+            if (OverlayControls.IsPointerOverControl ||
+                _isDraggingSlider ||
                 OverlayControls.IsPointerOverFlyout)
             {
                 _lastMouseMoveTime = DateTime.Now;
@@ -359,7 +360,10 @@ public partial class MainWindow : Window
         // 延时一下判断，防止由于鼠标移入Popup（Flyout）导致短暂的触发Exited
         DispatcherTimer.RunOnce(() =>
         {
-            if (!OverlayControls.IsPointerOverControl && !_isDraggingSlider && !OverlayControls.IsPointerOverFlyout && !OverlayControls.IsVolumeFlyoutOpen)
+            if (!OverlayControls.IsPointerOverControl &&
+                !_isDraggingSlider &&
+                !OverlayControls.IsPointerOverFlyout &&
+                !OverlayControls.IsVolumeFlyoutOpen)
             {
                 HideOverlay();
             }
