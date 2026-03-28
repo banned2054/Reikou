@@ -123,9 +123,12 @@ public partial class MainWindow : Window
         _uiVisibilityTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _uiVisibilityTimer.Tick += (_, _) =>
         {
+            // 通过鼠标位置判断是否在控制面板区域内（底部控制栏高度约 60-80 像素）
+            // 顶部标题栏也计入控制区域
+            var isMouseOverControlArea = _lastMousePosition.Y >= (this.Bounds.Height - 80) || _lastMousePosition.Y <= 60;
+
             // 只要满足下列任何一个条件，就不隐藏面板，并且刷新计时
-            // 注意：IsVolumeFlyoutOpen 不在这里，因为音量面板打开但鼠标不在上面时，应该允许隐藏
-            if (OverlayControls.IsPointerOverControl ||
+            if (isMouseOverControlArea ||
                 _isDraggingSlider ||
                 OverlayControls.IsPointerOverFlyout)
             {
@@ -136,7 +139,7 @@ public partial class MainWindow : Window
             // 判断距离最后一次移动鼠标是否超过了设定的秒数
             if ((DateTime.Now - _lastMouseMoveTime).TotalSeconds >= HideDelaySeconds)
             {
-                if (OverlayControls.Opacity > 0 || OverlayControls.IsVolumeFlyoutOpen)
+                if (OverlayControls.Opacity > 0)
                 {
                     HideOverlay();
                 }
@@ -360,10 +363,11 @@ public partial class MainWindow : Window
         // 延时一下判断，防止由于鼠标移入Popup（Flyout）导致短暂的触发Exited
         DispatcherTimer.RunOnce(() =>
         {
-            if (!OverlayControls.IsPointerOverControl &&
+            var isMouseOverControlArea = _lastMousePosition.Y >= (this.Bounds.Height - 80) || _lastMousePosition.Y <= 60;
+
+            if (!isMouseOverControlArea &&
                 !_isDraggingSlider &&
-                !OverlayControls.IsPointerOverFlyout &&
-                !OverlayControls.IsVolumeFlyoutOpen)
+                !OverlayControls.IsPointerOverFlyout)
             {
                 HideOverlay();
             }
