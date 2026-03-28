@@ -6,7 +6,7 @@ using Avalonia.Threading;
 using System;
 using TestMpv.ViewModels;
 
-namespace TestMpv;
+namespace TestMpv.Views.Pages;
 
 public partial class MainWindow : Window
 {
@@ -123,12 +123,11 @@ public partial class MainWindow : Window
         _uiVisibilityTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _uiVisibilityTimer.Tick += (_, _) =>
         {
-            // 条件1：鼠标悬浮在控制面板上（OverlayControls）
-            // 条件2：正在拖拽进度条
-            // 条件3：鼠标悬浮在音量面板上
-            if (OverlayControls.IsPointerOver || _isDraggingSlider || OverlayControls.IsPointerOverFlyout)
+            // 只要满足下列任何一个条件，就不隐藏面板，并且刷新计时
+            if (OverlayControls.IsPointerOverControl || 
+                _isDraggingSlider || 
+                OverlayControls.IsPointerOverFlyout)
             {
-                // 只要满足上述条件，就不断刷新最后活动时间，防止隐藏
                 _lastMouseMoveTime = DateTime.Now;
                 return;
             }
@@ -360,7 +359,7 @@ public partial class MainWindow : Window
         // 延时一下判断，防止由于鼠标移入Popup（Flyout）导致短暂的触发Exited
         DispatcherTimer.RunOnce(() =>
         {
-            if (!OverlayControls.IsPointerOver && !_isDraggingSlider && !OverlayControls.IsPointerOverFlyout)
+            if (!OverlayControls.IsPointerOverControl && !_isDraggingSlider && !OverlayControls.IsPointerOverFlyout && !OverlayControls.IsVolumeFlyoutOpen)
             {
                 HideOverlay();
             }

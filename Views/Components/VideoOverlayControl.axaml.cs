@@ -5,10 +5,13 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using System;
 
-namespace TestMpv.Views.Controls;
+namespace TestMpv.Views.Components;
 
 public class VideoOverlayControl : TemplatedControl
 {
+    // --- 内部状态 ---
+    private int _pointerOverCount;
+
     // --- Styled Properties ---
 
     public static readonly StyledProperty<double> CurrentTimeProperty =
@@ -101,6 +104,9 @@ public class VideoOverlayControl : TemplatedControl
         set => SetValue(IsPointerOverFlyoutProperty, value);
     }
 
+    // --- 属性：是否有指针在控件上（包括子元素） ---
+    public bool IsPointerOverControl => _pointerOverCount > 0;
+
     // --- Routed Events ---
 
     public static readonly RoutedEvent<RoutedEventArgs> PlayPauseRequestedEvent =
@@ -143,106 +149,69 @@ public class VideoOverlayControl : TemplatedControl
 
     // --- Template Parts ---
 
-    private Slider? _timeSlider;
-    private Button? _playPauseButton;
-    private Button? _backwardButton;
-    private Button? _forwardButton;
-    private Button? _danmuButton;
-    private Button? _volumeButton;
+    private VideoTransportControls? _transportControls;
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
 
-        // Detach old events
-        if (_timeSlider != null)
-        {
-            _timeSlider.RemoveHandler(PointerPressedEvent, OnSliderPointerPressed);
-            _timeSlider.RemoveHandler(PointerReleasedEvent, OnSliderPointerReleased);
-            _timeSlider.ValueChanged -= OnSliderValueChanged;
-        }
+        // 清理旧的指针事件
+        PointerEntered -= OnControlPointerEntered;
+        PointerExited -= OnControlPointerExited;
 
-        if (_playPauseButton != null) _playPauseButton.Click -= OnPlayPauseClick;
-        if (_backwardButton  != null) _backwardButton.Click  -= OnPlayPauseClick;
-        if (_forwardButton   != null) _forwardButton.Click   -= OnPlayPauseClick;
-        if (_danmuButton     != null) _danmuButton.Click     -= OnPlayPauseClick;
-        if (_volumeButton is { Flyout: not null })
+        // 附加指针事件
+        PointerEntered += OnControlPointerEntered;
+        PointerExited += OnControlPointerExited;
+
+        // Detach old events
+        if (_transportControls != null)
         {
-            _volumeButton.Flyout.Opened -= OnVolumeFlyoutOpened;
-            _volumeButton.Flyout.Closed -= OnVolumeFlyoutClosed;
-            if (_volumeButton.Flyout is Flyout { Content: Control content })
-            {
-                content.PointerEntered -= OnFlyoutContentPointerEntered;
-                content.PointerExited  -= OnFlyoutContentPointerExited;
-            }
+            _transportControls.PlayPauseRequested -= OnPlayPauseClick;
+            _transportControls.SeekStarted        -= OnSeekStartedFromTransport;
+            _transportControls.SeekEnded          -= OnSeekEndedFromTransport;
+            _transportControls.SeekMoved          -= OnSeekMovedFromTransport;
         }
 
         // Find new parts
-        _timeSlider      = e.NameScope.Find<Slider>("PART_TimeSlider");
-        _playPauseButton = e.NameScope.Find<Button>("PART_PlayPauseButton");
-        _backwardButton  = e.NameScope.Find<Button>("PART_BackwardButton");
-        _forwardButton   = e.NameScope.Find<Button>("PART_ForwardButton");
-        _danmuButton     = e.NameScope.Find<Button>("PART_DanmuButton");
-        _volumeButton    = e.NameScope.Find<Button>("PART_VolumeButton");
+        _transportControls = e.NameScope.Find<VideoTransportControls>("PART_TransportControls");
 
         // Attach new events
-        if (_timeSlider != null)
+        if (_transportControls != null)
         {
-            _timeSlider.AddHandler(PointerPressedEvent, OnSliderPointerPressed,
-                                   RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
-            _timeSlider.AddHandler(PointerReleasedEvent, OnSliderPointerReleased,
-                                   RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
-            _timeSlider.ValueChanged += OnSliderValueChanged;
-        }
-
-        if (_playPauseButton != null) _playPauseButton.Click += OnPlayPauseClick;
-        if (_backwardButton  != null) _backwardButton.Click  += OnPlayPauseClick;
-        if (_forwardButton   != null) _forwardButton.Click   += OnPlayPauseClick;
-        if (_danmuButton     != null) _danmuButton.Click     += OnPlayPauseClick;
-        if (_volumeButton is { Flyout: not null })
-        {
-            _volumeButton.Flyout.Opened += OnVolumeFlyoutOpened;
-            _volumeButton.Flyout.Closed += OnVolumeFlyoutClosed;
-
-            if (_volumeButton.Flyout is not Flyout { Content: Control content }) return;
-            content.PointerEntered += OnFlyoutContentPointerEntered;
-            content.PointerExited  += OnFlyoutContentPointerExited;
+            _transportControls.PlayPauseRequested += OnPlayPauseClick;
+            _transportControls.SeekStarted        += OnSeekStartedFromTransport;
+            _transportControls.SeekEnded          += OnSeekEndedFromTransport;
+            _transportControls.SeekMoved          += OnSeekMovedFromTransport;
         }
     }
 
     public void HideFlyouts()
     {
-        _volumeButton?.Flyout?.Hide();
+        _transportControls?.HideFlyouts();
     }
 
-    private void OnFlyoutContentPointerEntered(object? sender, PointerEventArgs e) => IsPointerOverFlyout = true;
-    private void OnFlyoutContentPointerExited(object?  sender, PointerEventArgs e) => IsPointerOverFlyout = false;
-
-    private void OnVolumeFlyoutOpened(object? sender, EventArgs e) => IsVolumeFlyoutOpen = true;
-
-    private void OnVolumeFlyoutClosed(object? sender, EventArgs e)
-    {
-        IsVolumeFlyoutOpen  = false;
-        IsPointerOverFlyout = false;
-    }
-
-    private void OnSliderPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
+    private void OnSeekStartedFromTransport(object? sender, RoutedEventArgs e) =>
         RaiseEvent(new RoutedEventArgs(SeekStartedEvent));
-    }
 
-    private void OnSliderPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
+    private void OnSeekEndedFromTransport(object? sender, RoutedEventArgs e) =>
         RaiseEvent(new RoutedEventArgs(SeekEndedEvent));
-    }
 
-    private void OnSliderValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
-    {
+    private void OnSeekMovedFromTransport(object? sender, RangeBaseValueChangedEventArgs e) =>
         RaiseEvent(new RangeBaseValueChangedEventArgs(e.OldValue, e.NewValue, SeekMovedEvent));
-    }
 
     private void OnPlayPauseClick(object? sender, RoutedEventArgs e)
     {
         RaiseEvent(new RoutedEventArgs(PlayPauseRequestedEvent));
+    }
+
+    private void OnControlPointerEntered(object? sender, PointerEventArgs e)
+    {
+        _pointerOverCount++;
+    }
+
+    private void OnControlPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (_pointerOverCount > 0)
+            _pointerOverCount--;
     }
 }

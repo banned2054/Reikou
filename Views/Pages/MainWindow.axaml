@@ -5,8 +5,9 @@
         xmlns:testMpv="clr-namespace:TestMpv"
         xmlns:vm="clr-namespace:TestMpv.ViewModels"
         xmlns:controls="clr-namespace:TestMpv.Views.Controls"
+        xmlns:components="clr-namespace:TestMpv.Views.Components"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="TestMpv.MainWindow"
+        x:Class="TestMpv.Views.Pages.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="TestMpv"
         DragDrop.AllowDrop="True">
@@ -34,23 +35,23 @@
     </Window.Styles>
 
     <Panel>
-        <testMpv:MpvVideoView x:Name="Player" />
+        <controls:MpvVideoView x:Name="Player" />
 
         <Panel Background="Transparent"
                PointerPressed="OnVideoPointerPressed"
                PointerReleased="OnVideoPointerReleased" />
 
-        <controls:VideoOverlayControl x:Name="OverlayControls"
-                                      CurrentTime="{Binding CurrentTime, Mode=TwoWay}"
-                                      Duration="{Binding Duration}"
-                                      IsPlaying="{Binding IsPlaying}"
-                                      TimeText="{Binding TimeText}"
-                                      PlaybackSpeed="{Binding PlaybackSpeed}"
-                                      Volume="{Binding Volume, Mode=TwoWay}"
-                                      IsMuted="{Binding IsMuted}"
-                                      PlayPauseRequested="OnPlayPauseClick"
-                                      SeekStarted="OnSeekStarted"
-                                      SeekEnded="OnSeekEnded"
-                                      SeekMoved="OnSeekMoved" />
+        <components:VideoOverlayControl x:Name="OverlayControls"
+                                        CurrentTime="{Binding CurrentTime, Mode=TwoWay}"
+                                        Duration="{Binding Duration}"
+                                        IsPlaying="{Binding IsPlaying}"
+                                        TimeText="{Binding TimeText}"
+                                        PlaybackSpeed="{Binding PlaybackSpeed}"
+                                        Volume="{Binding Volume, Mode=TwoWay}"
+                                        IsMuted="{Binding IsMuted}"
+                                        PlayPauseRequested="OnPlayPauseClick"
+                                        SeekStarted="OnSeekStarted"
+                                        SeekEnded="OnSeekEnded"
+                                        SeekMoved="OnSeekMoved" />
     </Panel>
 </Window>

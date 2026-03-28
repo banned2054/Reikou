@@ -6,7 +6,7 @@ using System;
 using System.Threading.Tasks;
 using TestMpv.Services;
 
-namespace TestMpv;
+namespace TestMpv.Views.Controls;
 
 public class MpvVideoView : OpenGlControlBase, IDisposable
 {

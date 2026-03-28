@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using System;
+using TestMpv.Views.Controls;
+using TestMpv.Views.Pages;
 
 namespace TestMpv;
 

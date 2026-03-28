@@ -11,7 +11,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="/Views/Controls/VideoOverlayControl.axaml" />
+                <ResourceInclude Source="/Views/Components/VideoTransportControls.axaml" />
+                <ResourceInclude Source="/Views/Components/VideoOverlayControl.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
