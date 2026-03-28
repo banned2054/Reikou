@@ -13,8 +13,8 @@
                             <Setter Property="BorderThickness" Value="0" />
                             <Setter Property="Padding" Value="0" />
                             <Setter Property="CornerRadius" Value="8" />
-                            <Setter Property="MinWidth" Value="40" />
-                            <Setter Property="MaxWidth" Value="40" />
+                            <Setter Property="MinWidth" Value="46" />
+                            <Setter Property="MaxWidth" Value="46" />
                             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Hidden" />
                             <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Hidden" />
                         </Style>
@@ -57,11 +57,15 @@
                             <Button x:Name="PART_VolumeButton" Classes="IconButton" Width="32" Height="32">
                                 <Button.Flyout>
                                     <Flyout Placement="Top" FlyoutPresenterClasses="VolumeFlyout">
-                                        <Grid Width="40" Height="130">
+                                        <Grid Width="46" Height="130">
                                             <Slider Orientation="Vertical" Height="100"
                                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                                     Minimum="0" Maximum="200"
-                                                    Value="{Binding Volume, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
+                                                    Value="{Binding Volume, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                                <Slider.RenderTransform>
+                                                    <TranslateTransform X="-2" />
+                                                </Slider.RenderTransform>
+                                            </Slider>
                                         </Grid>
                                     </Flyout>
                                 </Button.Flyout>
