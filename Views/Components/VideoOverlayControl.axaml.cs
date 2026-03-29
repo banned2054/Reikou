@@ -178,6 +178,24 @@ public class VideoOverlayControl : TemplatedControl
         set => SetValue(ChangeSpeedCommandProperty, value);
     }
 
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleFullscreenCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(ToggleFullscreenCommand));
+
+    public System.Windows.Input.ICommand? ToggleFullscreenCommand
+    {
+        get => GetValue(ToggleFullscreenCommandProperty);
+        set => SetValue(ToggleFullscreenCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<bool> IsFullscreenProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, bool>(nameof(IsFullscreen));
+
+    public bool IsFullscreen
+    {
+        get => GetValue(IsFullscreenProperty);
+        set => SetValue(IsFullscreenProperty, value);
+    }
+
     // --- 属性：是否有指针在控件上（包括子元素） ---
     public bool IsPointerOverControl => _pointerOverCount > 0;
 

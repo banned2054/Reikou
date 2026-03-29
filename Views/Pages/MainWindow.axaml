@@ -49,6 +49,7 @@
                                         PlaybackSpeed="{Binding PlaybackSpeed}"
                                         Volume="{Binding Volume, Mode=TwoWay}"
                                         IsMuted="{Binding IsMuted}"
+                                        IsFullscreen="{Binding IsFullscreen}"
                                         PlayPauseCommand="{Binding PlayPauseCommand}"
                                         PreviousCommand="{Binding PreviousCommand}"
                                         BackwardCommand="{Binding BackwardCommand}"
@@ -57,6 +58,7 @@
                                         ToggleMuteCommand="{Binding ToggleMuteCommand}"
                                         ToggleDanmakuCommand="{Binding ToggleDanmakuCommand}"
                                         ChangeSpeedCommand="{Binding ChangeSpeedCommand}"
+                                        ToggleFullscreenCommand="{Binding ToggleFullscreenCommand}"
                                         SeekStarted="OnSeekStarted"
                                         SeekEnded="OnSeekEnded"
                                         SeekMoved="OnSeekMoved" />

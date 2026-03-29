@@ -45,8 +45,8 @@ public partial class MainWindow : Window
         _viewModel                 =  new MainWindowViewModel();
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
-        InitializeCommands();      // 先初始化命令
-        DataContext                =  _viewModel;  // 再设置 DataContext，确保绑定发生时命令已就绪
+        InitializeCommands();     // 先初始化命令
+        DataContext = _viewModel; // 再设置 DataContext，确保绑定发生时命令已就绪
 
         InitializeEvents();
         StartSyncTimer();
@@ -58,16 +58,32 @@ public partial class MainWindow : Window
     private void InitializeCommands()
     {
         _viewModel.PlayPauseCommand = new RelayCommand(_ => Player.TogglePause());
-        _viewModel.PreviousCommand = new RelayCommand(_ => { /* TODO: Implement Previous */ });
+        _viewModel.PreviousCommand = new RelayCommand(_ =>
+        {
+            var item = _viewModel.Playlist.GoToPrevious();
+            if (item != null)
+            {
+                Player.LoadFileAsync(item.FilePath);
+                UpdateTitleFromPlaylist();
+            }
+        });
         _viewModel.BackwardCommand = new RelayCommand(_ => Player.Service?.Command($"seek {-SeekStep} relative"));
-        _viewModel.ForwardCommand = new RelayCommand(_ => Player.Service?.Command($"seek {SeekStep} relative"));
-        _viewModel.NextCommand = new RelayCommand(_ => { /* TODO: Implement Next */ });
-        
+        _viewModel.ForwardCommand  = new RelayCommand(_ => Player.Service?.Command($"seek {SeekStep} relative"));
+        _viewModel.NextCommand = new RelayCommand(_ =>
+        {
+            var item = _viewModel.Playlist.GoToNext();
+            if (item != null)
+            {
+                Player.LoadFileAsync(item.FilePath);
+                UpdateTitleFromPlaylist();
+            }
+        });
+
         _viewModel.ToggleMuteCommand = new RelayCommand(_ =>
         {
             if (_viewModel.Volume > 0)
             {
-                _lastVolume = _viewModel.Volume;
+                _lastVolume       = _viewModel.Volume;
                 _viewModel.Volume = 0;
             }
             else
@@ -83,12 +99,18 @@ public partial class MainWindow : Window
 
         _viewModel.ChangeSpeedCommand = new RelayCommand(_ =>
         {
-            var speeds = new[] { 0.5, 1.0, 1.25, 1.5, 2.0 };
-            var currentSpeed = Player.Service?.GetProperty<double>("speed") ?? 1.0;
-            var idx = Array.IndexOf(speeds, currentSpeed);
-            if (idx == -1) idx = 1; // default to 1.0
-            var nextSpeed = speeds[(idx + 1) % speeds.Length];
+            double[] speeds       = [0.5, 1.0, 1.25, 1.5, 2.0];
+            var      currentSpeed = Player.Service?.GetProperty<double>("speed") ?? 1.0;
+            var      idx          = Array.IndexOf(speeds, currentSpeed);
+            if (idx == -1) idx    = 1; // default to 1.0
+            var nextSpeed         = speeds[(idx + 1) % speeds.Length];
             Player.Service?.SetProperty("speed", nextSpeed);
+        });
+
+        _viewModel.ToggleFullscreenCommand = new RelayCommand(_ =>
+        {
+            WindowState = WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
+            _viewModel.IsFullscreen = WindowState == WindowState.FullScreen;
         });
     }
 
@@ -127,8 +149,31 @@ public partial class MainWindow : Window
         // 播放器事件回调
         Player.FileLoaded += (_, fileName) =>
         {
-            Dispatcher.UIThread.Post(() => { OverlayControls.Title = fileName; }); // 更新 UI 标题 [cite: 2]
+            Dispatcher.UIThread.Post(() =>
+            {
+                // 更新当前播放项的标题（如果路径匹配）
+                var currentItem = _viewModel.Playlist.CurrentItem;
+                if (currentItem != null && System.IO.Path.GetFileNameWithoutExtension(currentItem.FilePath) == fileName)
+                {
+                    UpdateTitleFromPlaylist();
+                }
+                else
+                {
+                    OverlayControls.Title = fileName;
+                }
+            });
         };
+    }
+
+    private void UpdateTitleFromPlaylist()
+    {
+        var item = _viewModel.Playlist.CurrentItem;
+        if (item != null)
+        {
+            var index = _viewModel.Playlist.CurrentIndex + 1;
+            var count = _viewModel.Playlist.Items.Count;
+            OverlayControls.Title = $"{item.Title} ({index}/{count})";
+        }
     }
 
     private void StartSyncTimer()
@@ -166,11 +211,12 @@ public partial class MainWindow : Window
         {
             // 通过鼠标位置判断是否在控制面板区域内（底部控制栏高度约 60-80 像素）
             // 顶部标题栏也计入控制区域
-            var isMouseOverControlArea = _lastMousePosition.Y >= (this.Bounds.Height - 80) || _lastMousePosition.Y <= 60;
+            var isMouseOverControlArea =
+                _lastMousePosition.Y >= (this.Bounds.Height - 80) || _lastMousePosition.Y <= 60;
 
             // 只要满足下列任何一个条件，就不隐藏面板，并且刷新计时
             if (isMouseOverControlArea ||
-                _isDraggingSlider ||
+                _isDraggingSlider      ||
                 OverlayControls.IsPointerOverFlyout)
             {
                 _lastMouseMoveTime = DateTime.Now;
@@ -237,7 +283,7 @@ public partial class MainWindow : Window
             if (_isFastForwarding)
             {
                 double dir = e.Key == Key.Right ? 1 : -1;
-                Player.Service?.Command($"seek {dir * 2} relative+keyframes"); // 长按快进逻辑 [cite: 2]
+                Player.Service?.Command($"seek {dir * 2} relative+keyframes");
             }
         }
         else
@@ -289,7 +335,7 @@ public partial class MainWindow : Window
 
         _mousePressTime        = DateTime.Now;
         _isMousePhysicallyDown = true;
-        _longPressTimer?.Start(); // 开启长按判定 [cite: 2]
+        _longPressTimer?.Start();
     }
 
     private void OnVideoPointerReleased(object? sender, PointerReleasedEventArgs e)
@@ -309,7 +355,7 @@ public partial class MainWindow : Window
         if (!_isMousePhysicallyDown) return;
         _isMouseLongPressing = true;
         _originalSpeed       = Player.Service?.GetProperty<double>("speed") ?? 1.0;
-        Player.Service?.SetProperty("speed", 2.0); // 触发2倍速播放 [cite: 2]
+        Player.Service?.SetProperty("speed", 2.0);
     }
 
     private void StopMouseLongPress()
@@ -348,7 +394,6 @@ public partial class MainWindow : Window
     private async void OnDrop(object? sender, DragEventArgs e)
     {
         // 1. 调用异步扩展方法获取文件列表
-        // 需要引用 using Avalonia.Input;
         var files = e.DataTransfer.TryGetFile();
 
         // 2. 获取第一个文件
@@ -357,7 +402,17 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(firstFile)) return;
 
         var extension = System.IO.Path.GetExtension(firstFile).ToLower();
-        if (IsVideoFile(extension)) await Player.LoadFileAsync(firstFile);
+        if (IsVideoFile(extension))
+        {
+            // 添加到播放列表并播放
+            _viewModel.Playlist.AddFile(firstFile);
+            var item = _viewModel.Playlist.GoToFile(firstFile);
+            if (item != null)
+            {
+                await Player.LoadFileAsync(item.FilePath);
+                UpdateTitleFromPlaylist();
+            }
+        }
         else if (IsSubtitleFile(extension)) await Player.LoadSubtitleAsync(firstFile);
     }
 
@@ -404,10 +459,11 @@ public partial class MainWindow : Window
         // 延时一下判断，防止由于鼠标移入Popup（Flyout）导致短暂的触发Exited
         DispatcherTimer.RunOnce(() =>
         {
-            var isMouseOverControlArea = _lastMousePosition.Y >= (this.Bounds.Height - 80) || _lastMousePosition.Y <= 60;
+            var isMouseOverControlArea =
+                _lastMousePosition.Y >= (this.Bounds.Height - 80) || _lastMousePosition.Y <= 60;
 
             if (!isMouseOverControlArea &&
-                !_isDraggingSlider &&
+                !_isDraggingSlider      &&
                 !OverlayControls.IsPointerOverFlyout)
             {
                 HideOverlay();

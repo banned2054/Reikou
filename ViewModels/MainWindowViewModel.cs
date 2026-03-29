@@ -18,15 +18,19 @@ internal class MainWindowViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    // --- ViewModels ---
+    public PlaylistViewModel Playlist { get; } = new();
+
     // --- Commands ---
-    public ICommand PlayPauseCommand { get; set; } = null!;
-    public ICommand PreviousCommand { get; set; } = null!;
-    public ICommand BackwardCommand { get; set; } = null!;
-    public ICommand ForwardCommand { get; set; } = null!;
-    public ICommand NextCommand { get; set; } = null!;
-    public ICommand ToggleMuteCommand { get; set; } = null!;
-    public ICommand ToggleDanmakuCommand { get; set; } = null!;
-    public ICommand ChangeSpeedCommand { get; set; } = null!;
+    public ICommand PlayPauseCommand        { get; set; } = null!;
+    public ICommand PreviousCommand         { get; set; } = null!;
+    public ICommand BackwardCommand         { get; set; } = null!;
+    public ICommand ForwardCommand          { get; set; } = null!;
+    public ICommand NextCommand             { get; set; } = null!;
+    public ICommand ToggleMuteCommand       { get; set; } = null!;
+    public ICommand ToggleDanmakuCommand    { get; set; } = null!;
+    public ICommand ChangeSpeedCommand      { get; set; } = null!;
+    public ICommand ToggleFullscreenCommand { get; set; } = null!;
 
     public double Volume
     {
@@ -84,6 +88,14 @@ internal class MainWindowViewModel : INotifyPropertyChanged
         set => SetField(ref _playbackSpeed, value);
     }
 
+    private bool _isFullscreen;
+
+    public bool IsFullscreen
+    {
+        get => _isFullscreen;
+        set => SetField(ref _isFullscreen, value);
+    }
+
     private void UpdateTimeText()
     {
         if (Math.Abs(CurrentTime - _lastTimeTextCurrent)  < 0.1 &&
@@ -123,7 +135,6 @@ internal class MainWindowViewModel : INotifyPropertyChanged
 
     public void UpdateTimeFromPlayer(double time, double duration)
     {
-        // 只在时间变化超过 100ms 才更新 UI
         if (Math.Abs(time - _lastUiUpdateTime) < 0.1)
             return;
 

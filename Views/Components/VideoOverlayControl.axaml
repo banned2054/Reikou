@@ -63,6 +63,7 @@
                                                            IsMuted="{Binding IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
                                                            IsVolumeFlyoutOpen="{Binding IsVolumeFlyoutOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                                            IsPointerOverFlyout="{Binding IsPointerOverFlyout, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                           IsFullscreen="{Binding IsFullscreen, RelativeSource={RelativeSource TemplatedParent}}"
                                                            PlayPauseCommand="{Binding PlayPauseCommand, RelativeSource={RelativeSource TemplatedParent}}"
                                                            PreviousCommand="{Binding PreviousCommand, RelativeSource={RelativeSource TemplatedParent}}"
                                                            BackwardCommand="{Binding BackwardCommand, RelativeSource={RelativeSource TemplatedParent}}"
@@ -70,7 +71,8 @@
                                                            NextCommand="{Binding NextCommand, RelativeSource={RelativeSource TemplatedParent}}"
                                                            ToggleMuteCommand="{Binding ToggleMuteCommand, RelativeSource={RelativeSource TemplatedParent}}"
                                                            ToggleDanmakuCommand="{Binding ToggleDanmakuCommand, RelativeSource={RelativeSource TemplatedParent}}"
-                                                           ChangeSpeedCommand="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}" />
+                                                           ChangeSpeedCommand="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                           ToggleFullscreenCommand="{Binding ToggleFullscreenCommand, RelativeSource={RelativeSource TemplatedParent}}" />
                     </Grid>
                 </Grid>
             </ControlTemplate>
