@@ -88,7 +88,7 @@
                                          Stretch="Uniform" />
                                 </Panel>
                             </Button>
-                            <Button x:Name="PART_DanmuButton" Command="{TemplateBinding ToggleDanmakuCommand}" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_DanmakuButton" Command="{TemplateBinding ToggleDanmakuCommand}" Classes="IconButton" Width="32" Height="32">
                                 <Panel>
                                     <Svg Path="avares://TestMpv/Assets/ico-danmaku-switch-on.svg"
                                          IsVisible="{Binding !IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
@@ -103,6 +103,16 @@
                                 Content="{Binding PlaybackSpeed, RelativeSource={RelativeSource TemplatedParent}, StringFormat=\{0:0.0\}x}"
                                 Background="Transparent" Foreground="White" Focusable="False" FontWeight="Bold"
                                 Padding="5" />
+                            <Button x:Name="PART_FullscreenButton" Command="{TemplateBinding ToggleFullscreenCommand}" Classes="IconButton" Width="32" Height="32">
+                                <Panel>
+                                    <Svg Path="avares://TestMpv/Assets/ico-fullscreen.svg"
+                                         IsVisible="{Binding !IsFullscreen, RelativeSource={RelativeSource TemplatedParent}}"
+                                         Stretch="Uniform" />
+                                    <Svg Path="avares://TestMpv/Assets/ico-fullscreen-exit.svg"
+                                         IsVisible="{Binding IsFullscreen, RelativeSource={RelativeSource TemplatedParent}}"
+                                         Stretch="Uniform" />
+                                </Panel>
+                            </Button>
                         </StackPanel>
                     </Grid>
                 </Grid>

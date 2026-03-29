@@ -166,6 +166,24 @@ public class VideoTransportControls : TemplatedControl
         set => SetValue(ChangeSpeedCommandProperty, value);
     }
 
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleFullscreenCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ToggleFullscreenCommand));
+
+    public System.Windows.Input.ICommand? ToggleFullscreenCommand
+    {
+        get => GetValue(ToggleFullscreenCommandProperty);
+        set => SetValue(ToggleFullscreenCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<bool> IsFullscreenProperty =
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsFullscreen));
+
+    public bool IsFullscreen
+    {
+        get => GetValue(IsFullscreenProperty);
+        set => SetValue(IsFullscreenProperty, value);
+    }
+
     // --- Routed Events ---
 
     public static readonly RoutedEvent<RoutedEventArgs> SeekStartedEvent =
@@ -204,7 +222,7 @@ public class VideoTransportControls : TemplatedControl
     private Button? _playPauseButton;
     private Button? _forwardButton;
     private Button? _nextButton;
-    private Button? _danmuButton;
+    private Button? _danmakuButton;
     private Button? _volumeButton;
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -237,7 +255,7 @@ public class VideoTransportControls : TemplatedControl
         _playPauseButton = e.NameScope.Find<Button>("PART_PlayPauseButton");
         _forwardButton   = e.NameScope.Find<Button>("PART_ForwardButton");
         _nextButton      = e.NameScope.Find<Button>("PART_NextButton");
-        _danmuButton     = e.NameScope.Find<Button>("PART_DanmuButton");
+        _danmakuButton     = e.NameScope.Find<Button>("PART_DanmakuButton");
         _volumeButton    = e.NameScope.Find<Button>("PART_VolumeButton");
 
         // Attach new events
