@@ -20,8 +20,10 @@ internal class MainWindowViewModel : INotifyPropertyChanged
 
     // --- Commands ---
     public ICommand PlayPauseCommand { get; set; } = null!;
+    public ICommand PreviousCommand { get; set; } = null!;
     public ICommand BackwardCommand { get; set; } = null!;
     public ICommand ForwardCommand { get; set; } = null!;
+    public ICommand NextCommand { get; set; } = null!;
     public ICommand ToggleMuteCommand { get; set; } = null!;
     public ICommand ToggleDanmakuCommand { get; set; } = null!;
     public ICommand ChangeSpeedCommand { get; set; } = null!;

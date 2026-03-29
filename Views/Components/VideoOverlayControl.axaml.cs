@@ -115,6 +115,15 @@ public class VideoOverlayControl : TemplatedControl
         set => SetValue(PlayPauseCommandProperty, value);
     }
 
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> PreviousCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(PreviousCommand));
+
+    public System.Windows.Input.ICommand? PreviousCommand
+    {
+        get => GetValue(PreviousCommandProperty);
+        set => SetValue(PreviousCommandProperty, value);
+    }
+
     public static readonly StyledProperty<System.Windows.Input.ICommand?> BackwardCommandProperty =
         AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(BackwardCommand));
 
@@ -131,6 +140,15 @@ public class VideoOverlayControl : TemplatedControl
     {
         get => GetValue(ForwardCommandProperty);
         set => SetValue(ForwardCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> NextCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(NextCommand));
+
+    public System.Windows.Input.ICommand? NextCommand
+    {
+        get => GetValue(NextCommandProperty);
+        set => SetValue(NextCommandProperty, value);
     }
 
     public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleMuteCommandProperty =
