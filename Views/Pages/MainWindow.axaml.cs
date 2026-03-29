@@ -44,9 +44,10 @@ public partial class MainWindow : Window
         InitializeComponent();
         _viewModel                 =  new MainWindowViewModel();
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
-        DataContext                =  _viewModel;
 
-        InitializeCommands();
+        InitializeCommands();      // 先初始化命令
+        DataContext                =  _viewModel;  // 再设置 DataContext，确保绑定发生时命令已就绪
+
         InitializeEvents();
         StartSyncTimer();
         StartUiVisibilityTimer(); // 启动UI显示检测定时器
@@ -57,8 +58,10 @@ public partial class MainWindow : Window
     private void InitializeCommands()
     {
         _viewModel.PlayPauseCommand = new RelayCommand(_ => Player.TogglePause());
-        _viewModel.BackwardCommand = new RelayCommand(_ => Player.Service?.Command("seek -5 relative"));
-        _viewModel.ForwardCommand = new RelayCommand(_ => Player.Service?.Command("seek 5 relative"));
+        _viewModel.PreviousCommand = new RelayCommand(_ => { /* TODO: Implement Previous */ });
+        _viewModel.BackwardCommand = new RelayCommand(_ => Player.Service?.Command($"seek {-SeekStep} relative"));
+        _viewModel.ForwardCommand = new RelayCommand(_ => Player.Service?.Command($"seek {SeekStep} relative"));
+        _viewModel.NextCommand = new RelayCommand(_ => { /* TODO: Implement Next */ });
         
         _viewModel.ToggleMuteCommand = new RelayCommand(_ =>
         {
@@ -255,8 +258,10 @@ public partial class MainWindow : Window
             if (_isFastForwarding) StopKeyFastForward();
             else
             {
-                double dir = e.Key == Key.Right ? 1 : -1;
-                Player.Service?.Command($"seek {dir * SeekStep} relative");
+                if (e.Key == Key.Right)
+                    _viewModel.ForwardCommand?.Execute(null);
+                else
+                    _viewModel.BackwardCommand?.Execute(null);
             }
 
             _currentHeldKey = null;
