@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using System;
+using System.Windows.Input;
 
 namespace TestMpv.Views.Components;
 
@@ -196,6 +197,15 @@ public class VideoOverlayControl : TemplatedControl
         set => SetValue(ToggleFullscreenCommandProperty, value);
     }
 
+    public static readonly StyledProperty<ICommand?> TakeScreenshotCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(TakeScreenshotCommand));
+
+    public ICommand? TakeScreenshotCommand
+    {
+        get => GetValue(TakeScreenshotCommandProperty);
+        set => SetValue(TakeScreenshotCommandProperty, value);
+    }
+
     public static readonly StyledProperty<bool> IsFullscreenProperty =
         AvaloniaProperty.Register<VideoOverlayControl, bool>(nameof(IsFullscreen));
 
@@ -203,6 +213,15 @@ public class VideoOverlayControl : TemplatedControl
     {
         get => GetValue(IsFullscreenProperty);
         set => SetValue(IsFullscreenProperty, value);
+    }
+
+    public static readonly StyledProperty<bool> IsPointerOverToolAreaProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, bool>(nameof(IsPointerOverToolArea));
+
+    public bool IsPointerOverToolArea
+    {
+        get => GetValue(IsPointerOverToolAreaProperty);
+        set => SetValue(IsPointerOverToolAreaProperty, value);
     }
 
     // --- 属性：是否有指针在控件上（包括子元素） ---
@@ -241,6 +260,7 @@ public class VideoOverlayControl : TemplatedControl
     // --- Template Parts ---
 
     private VideoTransportControls? _transportControls;
+    private Control?                _rightToolArea;
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
@@ -254,6 +274,12 @@ public class VideoOverlayControl : TemplatedControl
         PointerEntered += OnControlPointerEntered;
         PointerExited  += OnControlPointerExited;
 
+        if (_rightToolArea != null)
+        {
+            _rightToolArea.PointerEntered -= OnRightToolAreaPointerEntered;
+            _rightToolArea.PointerExited  -= OnRightToolAreaPointerExited;
+        }
+
         // Detach old events
         if (_transportControls != null)
         {
@@ -264,6 +290,7 @@ public class VideoOverlayControl : TemplatedControl
 
         // Find new parts
         _transportControls = e.NameScope.Find<VideoTransportControls>("PART_TransportControls");
+        _rightToolArea     = e.NameScope.Find<Control>("PART_RightToolArea");
 
         // Attach new events
         if (_transportControls != null)
@@ -271,6 +298,12 @@ public class VideoOverlayControl : TemplatedControl
             _transportControls.SeekStarted += OnSeekStartedFromTransport;
             _transportControls.SeekEnded   += OnSeekEndedFromTransport;
             _transportControls.SeekMoved   += OnSeekMovedFromTransport;
+        }
+
+        if (_rightToolArea != null)
+        {
+            _rightToolArea.PointerEntered += OnRightToolAreaPointerEntered;
+            _rightToolArea.PointerExited  += OnRightToolAreaPointerExited;
         }
     }
 
@@ -298,4 +331,8 @@ public class VideoOverlayControl : TemplatedControl
         if (_pointerOverCount > 0)
             _pointerOverCount--;
     }
+
+    private void OnRightToolAreaPointerEntered(object? sender, PointerEventArgs e) => IsPointerOverToolArea = true;
+
+    private void OnRightToolAreaPointerExited(object? sender, PointerEventArgs e) => IsPointerOverToolArea = false;
 }

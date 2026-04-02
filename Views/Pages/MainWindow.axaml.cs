@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using TestMpv.Utils;
 using TestMpv.ViewModels;
@@ -116,6 +117,8 @@ public partial class MainWindow : Window
             WindowState = WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
             _viewModel.IsFullscreen = WindowState == WindowState.FullScreen;
         });
+
+        _viewModel.TakeScreenshotCommand = new RelayCommand(_ => TakeScreenshot());
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -219,8 +222,9 @@ public partial class MainWindow : Window
                 _lastMousePosition.Y >= (this.Bounds.Height - 80) || _lastMousePosition.Y <= 60;
 
             // 只要满足下列任何一个条件，就不隐藏面板，并且刷新计时
-            if (isMouseOverControlArea ||
-                _isDraggingSlider      ||
+            if (isMouseOverControlArea                ||
+                _isDraggingSlider                     ||
+                OverlayControls.IsPointerOverToolArea ||
                 OverlayControls.IsPointerOverFlyout)
             {
                 _lastMouseMoveTime = DateTime.Now;
@@ -471,13 +475,29 @@ public partial class MainWindow : Window
             var isMouseOverControlArea =
                 _lastMousePosition.Y >= (this.Bounds.Height - 80) || _lastMousePosition.Y <= 60;
 
-            if (!isMouseOverControlArea &&
-                !_isDraggingSlider      &&
+            if (!isMouseOverControlArea                &&
+                !OverlayControls.IsPointerOverToolArea &&
+                !_isDraggingSlider                     &&
                 !OverlayControls.IsPointerOverFlyout)
             {
                 HideOverlay();
             }
         }, TimeSpan.FromMilliseconds(100));
+    }
+
+    private void TakeScreenshot()
+    {
+        var screenshotDirectory = Path.Combine(
+                                               Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+                                               "TestMpv");
+
+        Directory.CreateDirectory(screenshotDirectory);
+
+        var screenshotPath = Path.Combine(
+                                          screenshotDirectory,
+                                          $"screenshot-{DateTime.Now:yyyyMMdd-HHmmss}.png");
+
+        Player.TakeScreenshot(screenshotPath);
     }
 
     private void ShowOverlay()

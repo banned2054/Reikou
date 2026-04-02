@@ -59,6 +59,7 @@
                                         ToggleMuteCommand="{Binding ToggleMuteCommand}"
                                         ToggleDanmakuCommand="{Binding ToggleDanmakuCommand}"
                                         ChangeSpeedCommand="{Binding ChangeSpeedCommand}"
+                                        TakeScreenshotCommand="{Binding TakeScreenshotCommand}"
                                         ToggleFullscreenCommand="{Binding ToggleFullscreenCommand}"
                                         SeekStarted="OnSeekStarted"
                                         SeekEnded="OnSeekEnded"

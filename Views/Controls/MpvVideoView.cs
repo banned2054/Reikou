@@ -83,6 +83,15 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
         _mpvService?.Command($"sub-add \"{safeUrl}\" select");
     }
 
+    public void TakeScreenshot(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        var safePath = path.Replace("\\", "/");
+        _mpvService?.Command($"screenshot-to-file \"{safePath}\" window");
+    }
+
     public void TogglePause()            => _mpvService?.Command("cycle pause");
     public void Seek(double     seconds) => _mpvService?.Command($"seek {seconds} absolute");
     public void SeekFast(double seconds) => _mpvService?.Command($"seek {seconds} absolute+keyframes");
