@@ -1,9 +1,9 @@
 using Avalonia;
+using Serilog;
 using System;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Serilog;
 
 namespace TestMpv;
 

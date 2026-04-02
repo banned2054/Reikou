@@ -176,7 +176,8 @@ public class VideoTransportControls : TemplatedControl
     }
 
     public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleFullscreenCommandProperty =
-        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ToggleFullscreenCommand));
+        AvaloniaProperty
+           .Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ToggleFullscreenCommand));
 
     public System.Windows.Input.ICommand? ToggleFullscreenCommand
     {

@@ -1,7 +1,6 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:components="clr-namespace:TestMpv.Views.Components">
-
     <Design.PreviewWith>
         <Border Padding="20" Background="Black" Width="800" Height="200">
             <components:VideoOverlayControl Title="Test Video" CurrentTime="10" Duration="100" TimeText="00:10 / 01:40" />

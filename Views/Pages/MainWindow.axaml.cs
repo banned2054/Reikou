@@ -101,17 +101,12 @@ public partial class MainWindow : Window
 
         _viewModel.ChangeSpeedCommand = new RelayCommand(_ =>
         {
-            var speed = 1.0;
-
-            if (_ is double doubleSpeed)
+            var speed = _ switch
             {
-                speed = doubleSpeed;
-            }
-            else if (_ is string stringSpeed &&
-                     double.TryParse(stringSpeed, out var parsedSpeed))
-            {
-                speed = parsedSpeed;
-            }
+                double doubleSpeed                                                        => doubleSpeed,
+                string stringSpeed when double.TryParse(stringSpeed, out var parsedSpeed) => parsedSpeed,
+                _                                                                         => 1.0
+            };
 
             Player.Service?.SetProperty("speed", speed);
         });

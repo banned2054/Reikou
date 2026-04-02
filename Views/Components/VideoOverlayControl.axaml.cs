@@ -248,18 +248,18 @@ public class VideoOverlayControl : TemplatedControl
 
         // 清理旧的指针事件
         PointerEntered -= OnControlPointerEntered;
-        PointerExited -= OnControlPointerExited;
+        PointerExited  -= OnControlPointerExited;
 
         // 附加指针事件
         PointerEntered += OnControlPointerEntered;
-        PointerExited += OnControlPointerExited;
+        PointerExited  += OnControlPointerExited;
 
         // Detach old events
         if (_transportControls != null)
         {
-            _transportControls.SeekStarted        -= OnSeekStartedFromTransport;
-            _transportControls.SeekEnded          -= OnSeekEndedFromTransport;
-            _transportControls.SeekMoved          -= OnSeekMovedFromTransport;
+            _transportControls.SeekStarted -= OnSeekStartedFromTransport;
+            _transportControls.SeekEnded   -= OnSeekEndedFromTransport;
+            _transportControls.SeekMoved   -= OnSeekMovedFromTransport;
         }
 
         // Find new parts
@@ -268,9 +268,9 @@ public class VideoOverlayControl : TemplatedControl
         // Attach new events
         if (_transportControls != null)
         {
-            _transportControls.SeekStarted        += OnSeekStartedFromTransport;
-            _transportControls.SeekEnded          += OnSeekEndedFromTransport;
-            _transportControls.SeekMoved          += OnSeekMovedFromTransport;
+            _transportControls.SeekStarted += OnSeekStartedFromTransport;
+            _transportControls.SeekEnded   += OnSeekEndedFromTransport;
+            _transportControls.SeekMoved   += OnSeekMovedFromTransport;
         }
     }
 

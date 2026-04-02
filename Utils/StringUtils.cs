@@ -1,12 +1,11 @@
 using System;
 using System.IO;
-using System.Linq;
 
 namespace TestMpv.Utils;
 
 public static class StringUtils
 {
-    private static readonly string[] VideoExtensions = [".mp4", ".mkv", ".avi", ".mov", ".flv"];
+    private static readonly string[] VideoExtensions    = [".mp4", ".mkv", ".avi", ".mov", ".flv"];
     private static readonly string[] SubtitleExtensions = [".ass", ".srt", ".vtt", ".sub"];
 
     public static bool IsVideoFile(string filePathOrExtension)

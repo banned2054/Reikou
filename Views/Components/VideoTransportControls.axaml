@@ -1,31 +1,30 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:components="clr-namespace:TestMpv.Views.Components">
-
     <ControlTheme x:Key="{x:Type components:VideoTransportControls}" TargetType="components:VideoTransportControls">
         <Setter Property="Template">
             <ControlTemplate>
                 <Grid RowDefinitions="Auto,Auto">
-                        <Grid.Styles>
-                            <Style Selector="FlyoutPresenter.VolumeFlyout">
-                                <Setter Property="Background" Value="#CC000000" />
-                                <Setter Property="BorderBrush" Value="Transparent" />
-                                <Setter Property="BorderThickness" Value="0" />
+                    <Grid.Styles>
+                        <Style Selector="FlyoutPresenter.VolumeFlyout">
+                            <Setter Property="Background" Value="#CC000000" />
+                            <Setter Property="BorderBrush" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
                             <Setter Property="Padding" Value="0" />
                             <Setter Property="CornerRadius" Value="8" />
                             <Setter Property="MinWidth" Value="46" />
                             <Setter Property="MaxWidth" Value="46" />
-                                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Hidden" />
-                                <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Hidden" />
-                            </Style>
-                            <Style Selector="FlyoutPresenter.SpeedFlyout">
-                                <Setter Property="Background" Value="#CC000000" />
-                                <Setter Property="BorderBrush" Value="Transparent" />
-                                <Setter Property="BorderThickness" Value="0" />
-                                <Setter Property="Padding" Value="8" />
-                                <Setter Property="CornerRadius" Value="8" />
-                            </Style>
-                        </Grid.Styles>
+                            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Hidden" />
+                            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Hidden" />
+                        </Style>
+                        <Style Selector="FlyoutPresenter.SpeedFlyout">
+                            <Setter Property="Background" Value="#CC000000" />
+                            <Setter Property="BorderBrush" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="Padding" Value="8" />
+                            <Setter Property="CornerRadius" Value="8" />
+                        </Style>
+                    </Grid.Styles>
 
                     <Slider Grid.Row="0" x:Name="PART_TimeSlider"
                             Margin="10,0"
@@ -36,17 +35,22 @@
 
                     <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="10,0,10,10">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                            <Button x:Name="PART_PreviousButton" Command="{TemplateBinding PreviousCommand}" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_PreviousButton" Command="{TemplateBinding PreviousCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
                                 <Panel>
-                                    <Svg Path="avares://TestMpv/Assets/ico-previous.svg" Width="20" Height="20" Stretch="Uniform" />
+                                    <Svg Path="avares://TestMpv/Assets/ico-previous.svg" Width="20" Height="20"
+                                         Stretch="Uniform" />
                                 </Panel>
                             </Button>
-                            <Button x:Name="PART_BackwardButton" Command="{TemplateBinding BackwardCommand}" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_BackwardButton" Command="{TemplateBinding BackwardCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
                                 <Panel>
-                                    <Svg Path="avares://TestMpv/Assets/ico-backward.svg" Width="20" Height="20" Stretch="Uniform" />
+                                    <Svg Path="avares://TestMpv/Assets/ico-backward.svg" Width="20" Height="20"
+                                         Stretch="Uniform" />
                                 </Panel>
                             </Button>
-                            <Button x:Name="PART_PlayPauseButton" Command="{TemplateBinding PlayPauseCommand}" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_PlayPauseButton" Command="{TemplateBinding PlayPauseCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
                                 <Panel>
                                     <Svg Path="avares://TestMpv/Assets/ico-play.svg"
                                          Width="20" Height="20"
@@ -58,14 +62,18 @@
                                          Stretch="Uniform" />
                                 </Panel>
                             </Button>
-                            <Button x:Name="PART_ForwardButton" Command="{TemplateBinding ForwardCommand}" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_ForwardButton" Command="{TemplateBinding ForwardCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
                                 <Panel>
-                                    <Svg Path="avares://TestMpv/Assets/ico-forward.svg" Width="20" Height="20" Stretch="Uniform" />
+                                    <Svg Path="avares://TestMpv/Assets/ico-forward.svg" Width="20" Height="20"
+                                         Stretch="Uniform" />
                                 </Panel>
                             </Button>
-                            <Button x:Name="PART_NextButton" Command="{TemplateBinding NextCommand}" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_NextButton" Command="{TemplateBinding NextCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
                                 <Panel>
-                                    <Svg Path="avares://TestMpv/Assets/ico-next.svg" Width="20" Height="20" Stretch="Uniform" />
+                                    <Svg Path="avares://TestMpv/Assets/ico-next.svg" Width="20" Height="20"
+                                         Stretch="Uniform" />
                                 </Panel>
                             </Button>
                             <TextBlock Text="{TemplateBinding TimeText}" Foreground="White"
@@ -97,7 +105,8 @@
                                          Stretch="Uniform" />
                                 </Panel>
                             </Button>
-                            <Button x:Name="PART_DanmakuButton" Command="{TemplateBinding ToggleDanmakuCommand}" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_DanmakuButton" Command="{TemplateBinding ToggleDanmakuCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
                                 <Panel>
                                     <Svg Path="avares://TestMpv/Assets/ico-danmaku-switch-on.svg"
                                          IsVisible="{Binding !IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
@@ -108,33 +117,52 @@
                                 </Panel>
                             </Button>
                             <Button x:Name="PART_SpeedButton"
-                                Background="Transparent" Foreground="White" Focusable="False" FontWeight="Bold"
-                                Width="48" Height="32"
-                                HorizontalContentAlignment="Center"
-                                VerticalContentAlignment="Center"
-                                VerticalAlignment="Center"
-                                Padding="0"
-                                Content="{TemplateBinding PlaybackSpeedText}">
+                                    Background="Transparent" Foreground="White" Focusable="False" FontWeight="Bold"
+                                    Width="48" Height="32"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Padding="0"
+                                    Content="{TemplateBinding PlaybackSpeedText}">
                                 <Button.Flyout>
                                     <Flyout Placement="Top" FlyoutPresenterClasses="SpeedFlyout">
                                         <StackPanel Spacing="4">
-                                            <Button Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}" CommandParameter="2.0"
-                                                    Content="2.0X" Background="Transparent" Foreground="White" Focusable="False" HorizontalContentAlignment="Center" />
-                                            <Button Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}" CommandParameter="1.5"
-                                                    Content="1.5X" Background="Transparent" Foreground="White" Focusable="False" HorizontalContentAlignment="Center" />
-                                            <Button Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}" CommandParameter="1.25"
-                                                    Content="1.25X" Background="Transparent" Foreground="White" Focusable="False" HorizontalContentAlignment="Center" />
-                                            <Button Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}" CommandParameter="1.0"
-                                                    Content="1.0X" Background="Transparent" Foreground="White" Focusable="False" HorizontalContentAlignment="Center" />
-                                            <Button Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}" CommandParameter="0.75"
-                                                    Content="0.75X" Background="Transparent" Foreground="White" Focusable="False" HorizontalContentAlignment="Center" />
-                                            <Button Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}" CommandParameter="0.5"
-                                                    Content="0.5X" Background="Transparent" Foreground="White" Focusable="False" HorizontalContentAlignment="Center" />
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="2.0"
+                                                Content="2.0X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="1.5"
+                                                Content="1.5X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="1.25"
+                                                Content="1.25X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="1.0"
+                                                Content="1.0X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="0.75"
+                                                Content="0.75X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="0.5"
+                                                Content="0.5X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
                                         </StackPanel>
                                     </Flyout>
                                 </Button.Flyout>
                             </Button>
-                            <Button x:Name="PART_FullscreenButton" Command="{TemplateBinding ToggleFullscreenCommand}" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_FullscreenButton" Command="{TemplateBinding ToggleFullscreenCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
                                 <Panel>
                                     <Svg Path="avares://TestMpv/Assets/ico-fullscreen.svg"
                                          IsVisible="{Binding !IsFullscreen, RelativeSource={RelativeSource TemplatedParent}}"
