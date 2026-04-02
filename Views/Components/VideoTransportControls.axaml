@@ -64,7 +64,7 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center">
-                            <Button x:Name="PART_VolumeButton" Command="{TemplateBinding ToggleMuteCommand}" Classes="IconButton" Width="32" Height="32">
+                            <Button x:Name="PART_VolumeButton" Classes="IconButton" Width="32" Height="32">
                                 <Button.Flyout>
                                     <Flyout Placement="Top" FlyoutPresenterClasses="VolumeFlyout">
                                         <Grid Width="46" Height="130">
