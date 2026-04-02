@@ -1,6 +1,6 @@
 using System;
 
-namespace TestMpv.Enums;
+namespace TestMpv.Models.Enums;
 
 [Flags]
 public enum MpvRenderUpdateFlag

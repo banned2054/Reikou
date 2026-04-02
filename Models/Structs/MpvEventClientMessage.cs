@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace TestMpv.Structs;
+namespace TestMpv.Models.Structs;
 
 [StructLayout(LayoutKind.Sequential)]
 public struct MpvEventClientMessage

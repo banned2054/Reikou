@@ -1,4 +1,4 @@
-namespace TestMpv.Enums;
+namespace TestMpv.Models.Enums;
 
 public enum MpvFormat
 {

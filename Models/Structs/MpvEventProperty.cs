@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
-using TestMpv.Enums;
+using TestMpv.Models.Enums;
 
-namespace TestMpv.Structs;
+namespace TestMpv.Models.Structs;
 
 [StructLayout(LayoutKind.Sequential)]
 public struct MpvEventProperty

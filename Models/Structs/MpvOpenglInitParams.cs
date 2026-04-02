@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using TestMpv.Native;
 
-namespace TestMpv.Structs;
+namespace TestMpv.Models.Structs;
 
 [StructLayout(LayoutKind.Sequential)]
 public struct MpvOpenglInitParams
