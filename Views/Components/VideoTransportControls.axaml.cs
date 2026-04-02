@@ -56,6 +56,15 @@ public class VideoTransportControls : TemplatedControl
         set => SetValue(PlaybackSpeedProperty, value);
     }
 
+    public static readonly StyledProperty<string> PlaybackSpeedTextProperty =
+        AvaloniaProperty.Register<VideoTransportControls, string>(nameof(PlaybackSpeedText), "倍速");
+
+    public string PlaybackSpeedText
+    {
+        get => GetValue(PlaybackSpeedTextProperty);
+        set => SetValue(PlaybackSpeedTextProperty, value);
+    }
+
     public static readonly StyledProperty<double> VolumeProperty =
         AvaloniaProperty.Register<VideoTransportControls, double>(nameof(Volume), 100.0);
 
@@ -224,6 +233,7 @@ public class VideoTransportControls : TemplatedControl
     private Button? _nextButton;
     private Button? _danmakuButton;
     private Button? _volumeButton;
+    private Button? _speedButton;
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
@@ -248,6 +258,17 @@ public class VideoTransportControls : TemplatedControl
             }
         }
 
+        if (_speedButton is { Flyout: not null })
+        {
+            _speedButton.Flyout.Opened -= OnSpeedFlyoutOpened;
+            _speedButton.Flyout.Closed -= OnSpeedFlyoutClosed;
+            if (_speedButton.Flyout is Flyout { Content: Control content })
+            {
+                content.PointerEntered -= OnFlyoutContentPointerEntered;
+                content.PointerExited  -= OnFlyoutContentPointerExited;
+            }
+        }
+
         // Find new parts
         _timeSlider      = e.NameScope.Find<Slider>("PART_TimeSlider");
         _previousButton  = e.NameScope.Find<Button>("PART_PreviousButton");
@@ -255,8 +276,9 @@ public class VideoTransportControls : TemplatedControl
         _playPauseButton = e.NameScope.Find<Button>("PART_PlayPauseButton");
         _forwardButton   = e.NameScope.Find<Button>("PART_ForwardButton");
         _nextButton      = e.NameScope.Find<Button>("PART_NextButton");
-        _danmakuButton     = e.NameScope.Find<Button>("PART_DanmakuButton");
+        _danmakuButton   = e.NameScope.Find<Button>("PART_DanmakuButton");
         _volumeButton    = e.NameScope.Find<Button>("PART_VolumeButton");
+        _speedButton     = e.NameScope.Find<Button>("PART_SpeedButton");
 
         // Attach new events
         if (_timeSlider != null)
@@ -279,11 +301,24 @@ public class VideoTransportControls : TemplatedControl
                 content2.PointerExited  += OnFlyoutContentPointerExited;
             }
         }
+
+        if (_speedButton is { Flyout: not null })
+        {
+            _speedButton.Flyout.Opened += OnSpeedFlyoutOpened;
+            _speedButton.Flyout.Closed += OnSpeedFlyoutClosed;
+
+            if (_speedButton.Flyout is Flyout { Content: Control content3 })
+            {
+                content3.PointerEntered += OnFlyoutContentPointerEntered;
+                content3.PointerExited  += OnFlyoutContentPointerExited;
+            }
+        }
     }
 
     public void HideFlyouts()
     {
         _volumeButton?.Flyout?.Hide();
+        _speedButton?.Flyout?.Hide();
     }
 
     private void OnFlyoutContentPointerEntered(object? sender, PointerEventArgs e) => IsPointerOverFlyout = true;
@@ -296,6 +331,10 @@ public class VideoTransportControls : TemplatedControl
         IsVolumeFlyoutOpen  = false;
         IsPointerOverFlyout = false;
     }
+
+    private void OnSpeedFlyoutOpened(object? sender, EventArgs e) => IsPointerOverFlyout = true;
+
+    private void OnSpeedFlyoutClosed(object? sender, EventArgs e) => IsPointerOverFlyout = false;
 
     private void OnSliderPointerPressed(object? sender, PointerPressedEventArgs e) =>
         RaiseEvent(new RoutedEventArgs(SeekStartedEvent));

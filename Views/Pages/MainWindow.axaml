@@ -47,6 +47,7 @@
                                         IsPlaying="{Binding IsPlaying}"
                                         TimeText="{Binding TimeText}"
                                         PlaybackSpeed="{Binding PlaybackSpeed}"
+                                        PlaybackSpeedText="{Binding PlaybackSpeedText}"
                                         Volume="{Binding Volume, Mode=TwoWay}"
                                         IsMuted="{Binding IsMuted}"
                                         IsFullscreen="{Binding IsFullscreen}"

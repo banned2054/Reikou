@@ -59,6 +59,7 @@
                                                            IsPlaying="{Binding IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
                                                            TimeText="{Binding TimeText, RelativeSource={RelativeSource TemplatedParent}}"
                                                            PlaybackSpeed="{Binding PlaybackSpeed, RelativeSource={RelativeSource TemplatedParent}}"
+                                                           PlaybackSpeedText="{Binding PlaybackSpeedText, RelativeSource={RelativeSource TemplatedParent}}"
                                                            Volume="{Binding Volume, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                                            IsMuted="{Binding IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
                                                            IsVolumeFlyoutOpen="{Binding IsVolumeFlyoutOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"

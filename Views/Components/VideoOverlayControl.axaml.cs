@@ -59,6 +59,15 @@ public class VideoOverlayControl : TemplatedControl
         set => SetValue(PlaybackSpeedProperty, value);
     }
 
+    public static readonly StyledProperty<string> PlaybackSpeedTextProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, string>(nameof(PlaybackSpeedText), "倍速");
+
+    public string PlaybackSpeedText
+    {
+        get => GetValue(PlaybackSpeedTextProperty);
+        set => SetValue(PlaybackSpeedTextProperty, value);
+    }
+
     public static readonly StyledProperty<string> TitleProperty =
         AvaloniaProperty.Register<VideoOverlayControl, string>(nameof(Title), "TestMpv");
 

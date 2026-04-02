@@ -85,8 +85,18 @@ internal class MainWindowViewModel : INotifyPropertyChanged
     public double PlaybackSpeed
     {
         get => _playbackSpeed;
-        set => SetField(ref _playbackSpeed, value);
+        set
+        {
+            if (SetField(ref _playbackSpeed, value))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PlaybackSpeedText)));
+            }
+        }
     }
+
+    public string PlaybackSpeedText => Math.Abs(_playbackSpeed - 1.0) < 0.001
+        ? "倍速"
+        : $"{_playbackSpeed:0.##}X";
 
     private bool _isFullscreen;
 

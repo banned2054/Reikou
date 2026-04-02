@@ -101,12 +101,19 @@ public partial class MainWindow : Window
 
         _viewModel.ChangeSpeedCommand = new RelayCommand(_ =>
         {
-            double[] speeds       = [0.5, 1.0, 1.25, 1.5, 2.0];
-            var      currentSpeed = Player.Service?.GetProperty<double>("speed") ?? 1.0;
-            var      idx          = Array.IndexOf(speeds, currentSpeed);
-            if (idx == -1) idx    = 1; // default to 1.0
-            var nextSpeed         = speeds[(idx + 1) % speeds.Length];
-            Player.Service?.SetProperty("speed", nextSpeed);
+            var speed = 1.0;
+
+            if (_ is double doubleSpeed)
+            {
+                speed = doubleSpeed;
+            }
+            else if (_ is string stringSpeed &&
+                     double.TryParse(stringSpeed, out var parsedSpeed))
+            {
+                speed = parsedSpeed;
+            }
+
+            Player.Service?.SetProperty("speed", speed);
         });
 
         _viewModel.ToggleFullscreenCommand = new RelayCommand(_ =>
