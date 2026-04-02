@@ -16,9 +16,12 @@
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<PublishAot>true</PublishAot>
 		<SelfContained>true</SelfContained>
-		<TrimMode>link</TrimMode>
+		<TrimMode>full</TrimMode>
 		<PublishTrimmed>true</PublishTrimmed>
-		<StripSymbols>false</StripSymbols>
+		<StripSymbols>true</StripSymbols>
+		<InvariantGlobalization>true</InvariantGlobalization>
+		<PublishReadyToRun>false</PublishReadyToRun>
+		<UseAppHost>true</UseAppHost>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Avalonia" Version="11.3.9" />
