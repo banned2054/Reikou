@@ -4,6 +4,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using System;
+using System.Threading.Tasks;
+using TestMpv.Utils;
 using TestMpv.ViewModels;
 
 namespace TestMpv.Views.Pages;
@@ -248,14 +250,14 @@ public partial class MainWindow : Window
     {
         if (!_isDraggingSlider) return;
 
-        Player.Seek(_viewModel.CurrentTime); // 释放时进行精确跳转 [cite: 2, 3]
+        Player.Seek(_viewModel.CurrentTime);
         _updateTimerCooldown = 5;
         Dispatcher.UIThread.Post(() => _isDraggingSlider = false);
     }
 
     private void OnSeekMoved(object? sender, RangeBaseValueChangedEventArgs e)
     {
-        if (_isDraggingSlider) Player.SeekFast(e.NewValue); // 拖动时使用快速跳转 [cite: 3]
+        if (_isDraggingSlider) Player.SeekFast(e.NewValue);
     }
 
     #endregion
@@ -383,6 +385,26 @@ public partial class MainWindow : Window
 
     #region 文件处理与弹幕加载
 
+    public async Task OpenMediaAsync(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath)) return;
+
+        if (StringUtils.IsVideoFile(filePath))
+        {
+            _viewModel.Playlist.LoadFromFile(filePath);
+            var item = _viewModel.Playlist.CurrentItem;
+            if (item != null)
+            {
+                await Player.LoadFileAsync(item.FilePath);
+                UpdateTitleFromPlaylist();
+            }
+        }
+        else if (StringUtils.IsSubtitleFile(filePath))
+        {
+            await Player.LoadSubtitleAsync(filePath);
+        }
+    }
+
     private void OnDragOver(object? sender, DragEventArgs e)
     {
         // 修复过时：e.Data 改为 e.DataTransfer，DataFormats.Files 改为 DataFormat.File
@@ -401,23 +423,8 @@ public partial class MainWindow : Window
 
         if (string.IsNullOrEmpty(firstFile)) return;
 
-        var extension = System.IO.Path.GetExtension(firstFile).ToLower();
-        if (IsVideoFile(extension))
-        {
-            // 添加到播放列表并播放
-            _viewModel.Playlist.AddFile(firstFile);
-            var item = _viewModel.Playlist.GoToFile(firstFile);
-            if (item != null)
-            {
-                await Player.LoadFileAsync(item.FilePath);
-                UpdateTitleFromPlaylist();
-            }
-        }
-        else if (IsSubtitleFile(extension)) await Player.LoadSubtitleAsync(firstFile);
+        await OpenMediaAsync(firstFile);
     }
-
-    private bool IsVideoFile(string    ext) => new[] { ".mp4", ".mkv", ".avi", ".mov", ".flv" }.Contains(ext);
-    private bool IsSubtitleFile(string ext) => new[] { ".ass", ".srt", ".vtt", ".sub" }.Contains(ext);
 
     #endregion
 

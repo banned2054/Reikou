@@ -5,54 +5,15 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using TestMpv.Models;
+using TestMpv.Utils;
 
 namespace TestMpv.ViewModels;
 
-public class PlaylistItem : INotifyPropertyChanged
-{
-    private string _filePath = string.Empty;
-    private string _title    = string.Empty;
-    private double _duration;
-    private bool   _isPlaying;
-
-    public string FilePath
-    {
-        get => _filePath;
-        set => SetField(ref _filePath, value);
-    }
-
-    public string Title
-    {
-        get => _title;
-        set => SetField(ref _title, value);
-    }
-
-    public double Duration
-    {
-        get => _duration;
-        set => SetField(ref _duration, value);
-    }
-
-    public bool IsPlaying
-    {
-        get => _isPlaying;
-        set => SetField(ref _isPlaying, value);
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        return true;
-    }
-}
-
 public class PlaylistViewModel : INotifyPropertyChanged
 {
-    private int  _currentIndex = -1;
+    private int  _currentIndex                = -1;
+    private bool _autoLoadVideosFromDirectory = true;
     private bool _isLooping;
     private bool _isShuffling;
 
@@ -79,6 +40,12 @@ public class PlaylistViewModel : INotifyPropertyChanged
     public bool CanGoPrevious => Items.Count > 1;
 
     public bool CanGoNext => Items.Count > 1;
+
+    public bool AutoLoadVideosFromDirectory
+    {
+        get => _autoLoadVideosFromDirectory;
+        set => SetField(ref _autoLoadVideosFromDirectory, value);
+    }
 
     public bool IsLooping
     {
@@ -124,6 +91,20 @@ public class PlaylistViewModel : INotifyPropertyChanged
         }
     }
 
+    public void LoadFromFile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return;
+
+        var filesToLoad = AutoLoadVideosFromDirectory
+            ? GetVideosInSameDirectory(filePath)
+            : [filePath];
+
+        Clear();
+        AddFiles(filesToLoad);
+        GoToFile(filePath);
+    }
+
     public void RemoveAt(int index)
     {
         if (index < 0 || index >= Items.Count) return;
@@ -147,6 +128,11 @@ public class PlaylistViewModel : INotifyPropertyChanged
     {
         Items.Clear();
         CurrentIndex = -1;
+    }
+
+    public bool IsVideoFile(string filePath)
+    {
+        return StringUtils.IsVideoFile(filePath);
     }
 
     public PlaylistItem? GoTo(int index)
@@ -247,5 +233,23 @@ public class PlaylistViewModel : INotifyPropertyChanged
         field = value;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         return true;
+    }
+
+    private IEnumerable<string> GetVideosInSameDirectory(string filePath)
+    {
+        if (!File.Exists(filePath))
+            return [filePath];
+
+        var directory = Path.GetDirectoryName(filePath);
+        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
+            return [filePath];
+
+        var files = Directory
+                   .EnumerateFiles(directory)
+                   .Where(IsVideoFile)
+                   .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+                   .ToList();
+
+        return files.Count > 0 ? files : [filePath];
     }
 }

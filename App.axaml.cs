@@ -26,7 +26,7 @@ public partial class App : Application
             {
                 var filePath = args[1];
                 // 在窗口加载完成后自动播放
-                mainWindow.Loaded += async (_, _) => { await mainWindow.Player.LoadFileAsync(filePath); };
+                mainWindow.Loaded += async (_, _) => { await mainWindow.OpenMediaAsync(filePath); };
             }
         }
 

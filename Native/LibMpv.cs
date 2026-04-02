@@ -2,8 +2,8 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using TestMpv.Enums;
-using TestMpv.Structs;
+using TestMpv.Models.Enums;
+using TestMpv.Models.Structs;
 
 namespace TestMpv.Native;
 

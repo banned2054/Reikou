@@ -1,10 +1,9 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
-using TestMpv.Enums;
+using TestMpv.Models.Enums;
+using TestMpv.Models.Structs;
 using TestMpv.Native;
-using TestMpv.Structs;
 
 namespace TestMpv.Services;
 
