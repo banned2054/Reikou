@@ -1,0 +1,424 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using System;
+
+namespace Reikou.Views.Components;
+
+public class VideoTransportControls : TemplatedControl
+{
+    // --- Styled Properties ---
+
+    public static readonly StyledProperty<double> CurrentTimeProperty =
+        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(CurrentTime));
+
+    public double CurrentTime
+    {
+        get => GetValue(CurrentTimeProperty);
+        set => SetValue(CurrentTimeProperty, value);
+    }
+
+    public static readonly StyledProperty<double> DurationProperty =
+        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(Duration));
+
+    public double Duration
+    {
+        get => GetValue(DurationProperty);
+        set => SetValue(DurationProperty, value);
+    }
+
+    public static readonly StyledProperty<bool> IsPlayingProperty =
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsPlaying));
+
+    public bool IsPlaying
+    {
+        get => GetValue(IsPlayingProperty);
+        set => SetValue(IsPlayingProperty, value);
+    }
+
+    public static readonly StyledProperty<string> TimeTextProperty =
+        AvaloniaProperty.Register<VideoTransportControls, string>(nameof(TimeText), "00:00 / 00:00");
+
+    public string TimeText
+    {
+        get => GetValue(TimeTextProperty);
+        set => SetValue(TimeTextProperty, value);
+    }
+
+    public static readonly StyledProperty<double> PlaybackSpeedProperty =
+        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(PlaybackSpeed), 1.0);
+
+    public double PlaybackSpeed
+    {
+        get => GetValue(PlaybackSpeedProperty);
+        set => SetValue(PlaybackSpeedProperty, value);
+    }
+
+    public static readonly StyledProperty<string> PlaybackSpeedTextProperty =
+        AvaloniaProperty.Register<VideoTransportControls, string>(nameof(PlaybackSpeedText), "倍速");
+
+    public string PlaybackSpeedText
+    {
+        get => GetValue(PlaybackSpeedTextProperty);
+        set => SetValue(PlaybackSpeedTextProperty, value);
+    }
+
+    public static readonly StyledProperty<double> VolumeProperty =
+        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(Volume), 100.0);
+
+    public double Volume
+    {
+        get => GetValue(VolumeProperty);
+        set => SetValue(VolumeProperty, value);
+    }
+
+    public static readonly StyledProperty<bool> IsMutedProperty =
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsMuted));
+
+    public bool IsMuted
+    {
+        get => GetValue(IsMutedProperty);
+        set => SetValue(IsMutedProperty, value);
+    }
+
+    public static readonly StyledProperty<bool> IsVolumeFlyoutOpenProperty =
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsVolumeFlyoutOpen));
+
+    public bool IsVolumeFlyoutOpen
+    {
+        get => GetValue(IsVolumeFlyoutOpenProperty);
+        set => SetValue(IsVolumeFlyoutOpenProperty, value);
+    }
+
+    public static readonly StyledProperty<bool> IsPointerOverFlyoutProperty =
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsPointerOverFlyout));
+
+    public bool IsPointerOverFlyout
+    {
+        get => GetValue(IsPointerOverFlyoutProperty);
+        set => SetValue(IsPointerOverFlyoutProperty, value);
+    }
+
+    // --- Commands ---
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> PlayPauseCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(PlayPauseCommand));
+
+    public System.Windows.Input.ICommand? PlayPauseCommand
+    {
+        get => GetValue(PlayPauseCommandProperty);
+        set => SetValue(PlayPauseCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> PreviousCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(PreviousCommand));
+
+    public System.Windows.Input.ICommand? PreviousCommand
+    {
+        get => GetValue(PreviousCommandProperty);
+        set => SetValue(PreviousCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> BackwardCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(BackwardCommand));
+
+    public System.Windows.Input.ICommand? BackwardCommand
+    {
+        get => GetValue(BackwardCommandProperty);
+        set => SetValue(BackwardCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ForwardCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ForwardCommand));
+
+    public System.Windows.Input.ICommand? ForwardCommand
+    {
+        get => GetValue(ForwardCommandProperty);
+        set => SetValue(ForwardCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> NextCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(NextCommand));
+
+    public System.Windows.Input.ICommand? NextCommand
+    {
+        get => GetValue(NextCommandProperty);
+        set => SetValue(NextCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleMuteCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ToggleMuteCommand));
+
+    public System.Windows.Input.ICommand? ToggleMuteCommand
+    {
+        get => GetValue(ToggleMuteCommandProperty);
+        set => SetValue(ToggleMuteCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleDanmakuCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ToggleDanmakuCommand));
+
+    public System.Windows.Input.ICommand? ToggleDanmakuCommand
+    {
+        get => GetValue(ToggleDanmakuCommandProperty);
+        set => SetValue(ToggleDanmakuCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ChangeSpeedCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ChangeSpeedCommand));
+
+    public System.Windows.Input.ICommand? ChangeSpeedCommand
+    {
+        get => GetValue(ChangeSpeedCommandProperty);
+        set => SetValue(ChangeSpeedCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleFullscreenCommandProperty =
+        AvaloniaProperty
+           .Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ToggleFullscreenCommand));
+
+    public System.Windows.Input.ICommand? ToggleFullscreenCommand
+    {
+        get => GetValue(ToggleFullscreenCommandProperty);
+        set => SetValue(ToggleFullscreenCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<bool> IsFullscreenProperty =
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsFullscreen));
+
+    public bool IsFullscreen
+    {
+        get => GetValue(IsFullscreenProperty);
+        set => SetValue(IsFullscreenProperty, value);
+    }
+
+    // --- Routed Events ---
+
+    public static readonly RoutedEvent<RoutedEventArgs> SeekStartedEvent =
+        RoutedEvent.Register<VideoTransportControls, RoutedEventArgs>(nameof(SeekStarted), RoutingStrategies.Bubble);
+
+    public event EventHandler<RoutedEventArgs> SeekStarted
+    {
+        add => AddHandler(SeekStartedEvent, value);
+        remove => RemoveHandler(SeekStartedEvent, value);
+    }
+
+    public static readonly RoutedEvent<RoutedEventArgs> SeekEndedEvent =
+        RoutedEvent.Register<VideoTransportControls, RoutedEventArgs>(nameof(SeekEnded), RoutingStrategies.Bubble);
+
+    public event EventHandler<RoutedEventArgs> SeekEnded
+    {
+        add => AddHandler(SeekEndedEvent, value);
+        remove => RemoveHandler(SeekEndedEvent, value);
+    }
+
+    public static readonly RoutedEvent<RangeBaseValueChangedEventArgs> SeekMovedEvent =
+        RoutedEvent.Register<VideoTransportControls, RangeBaseValueChangedEventArgs>(nameof(SeekMoved),
+                 RoutingStrategies.Bubble);
+
+    public event EventHandler<RangeBaseValueChangedEventArgs> SeekMoved
+    {
+        add => AddHandler(SeekMovedEvent, value);
+        remove => RemoveHandler(SeekMovedEvent, value);
+    }
+
+    // --- Template Parts ---
+
+    private Slider?          _timeSlider;
+    private Button?          _previousButton;
+    private Button?          _backwardButton;
+    private Button?          _playPauseButton;
+    private Button?          _forwardButton;
+    private Button?          _nextButton;
+    private Button?          _danmakuButton;
+    private Button?          _volumeButton;
+    private Popup?           _volumePopup;
+    private Border?          _volumePanel;
+    private Button?          _speedButton;
+    private DispatcherTimer? _volumeCloseTimer;
+    private bool             _isSpeedFlyoutOpen;
+
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+
+        // Detach old events
+        if (_timeSlider != null)
+        {
+            _timeSlider.RemoveHandler(PointerPressedEvent, OnSliderPointerPressed);
+            _timeSlider.RemoveHandler(PointerReleasedEvent, OnSliderPointerReleased);
+            _timeSlider.ValueChanged -= OnSliderValueChanged;
+        }
+
+        if (_volumeButton != null)
+        {
+            _volumeButton.PointerEntered -= OnVolumeButtonPointerEntered;
+            _volumeButton.PointerExited  -= OnVolumeButtonPointerExited;
+        }
+
+        if (_volumePanel != null)
+        {
+            _volumePanel.PointerEntered -= OnVolumePanelPointerEntered;
+            _volumePanel.PointerExited  -= OnVolumePanelPointerExited;
+        }
+
+        if (_speedButton is { Flyout: not null })
+        {
+            _speedButton.Flyout.Opened -= OnSpeedFlyoutOpened;
+            _speedButton.Flyout.Closed -= OnSpeedFlyoutClosed;
+            if (_speedButton.Flyout is Flyout { Content: Control content })
+            {
+                content.PointerEntered -= OnFlyoutContentPointerEntered;
+                content.PointerExited  -= OnFlyoutContentPointerExited;
+            }
+        }
+
+        // Find new parts
+        _timeSlider      = e.NameScope.Find<Slider>("PART_TimeSlider");
+        _previousButton  = e.NameScope.Find<Button>("PART_PreviousButton");
+        _backwardButton  = e.NameScope.Find<Button>("PART_BackwardButton");
+        _playPauseButton = e.NameScope.Find<Button>("PART_PlayPauseButton");
+        _forwardButton   = e.NameScope.Find<Button>("PART_ForwardButton");
+        _nextButton      = e.NameScope.Find<Button>("PART_NextButton");
+        _danmakuButton   = e.NameScope.Find<Button>("PART_DanmakuButton");
+        _volumeButton    = e.NameScope.Find<Button>("PART_VolumeButton");
+        _volumePopup     = e.NameScope.Find<Popup>("PART_VolumePopup");
+        _volumePanel     = e.NameScope.Find<Border>("PART_VolumePanel");
+        _speedButton     = e.NameScope.Find<Button>("PART_SpeedButton");
+
+        // Attach new events
+        if (_timeSlider != null)
+        {
+            _timeSlider.AddHandler(PointerPressedEvent, OnSliderPointerPressed,
+                                   RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
+            _timeSlider.AddHandler(PointerReleasedEvent, OnSliderPointerReleased,
+                                   RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
+            _timeSlider.ValueChanged += OnSliderValueChanged;
+        }
+
+        if (_volumeButton != null)
+        {
+            _volumeButton.PointerEntered += OnVolumeButtonPointerEntered;
+            _volumeButton.PointerExited  += OnVolumeButtonPointerExited;
+        }
+
+        if (_volumePanel != null)
+        {
+            _volumePanel.PointerEntered += OnVolumePanelPointerEntered;
+            _volumePanel.PointerExited  += OnVolumePanelPointerExited;
+        }
+
+        if (_speedButton is { Flyout: not null })
+        {
+            _speedButton.Flyout.Opened += OnSpeedFlyoutOpened;
+            _speedButton.Flyout.Closed += OnSpeedFlyoutClosed;
+
+            if (_speedButton.Flyout is Flyout { Content: Control content3 })
+            {
+                content3.PointerEntered += OnFlyoutContentPointerEntered;
+                content3.PointerExited  += OnFlyoutContentPointerExited;
+            }
+        }
+    }
+
+    public void HideFlyouts()
+    {
+        CancelPendingVolumeClose();
+        IsVolumeFlyoutOpen = false;
+        UpdatePointerOverFlyoutState();
+        _speedButton?.Flyout?.Hide();
+    }
+
+    private void OnFlyoutContentPointerEntered(object? sender, PointerEventArgs e)
+    {
+        _isSpeedFlyoutOpen = true;
+        UpdatePointerOverFlyoutState();
+    }
+
+    private void OnFlyoutContentPointerExited(object? sender, PointerEventArgs e)
+    {
+        _isSpeedFlyoutOpen = false;
+        UpdatePointerOverFlyoutState();
+    }
+
+    private void OnVolumeButtonPointerEntered(object? sender, PointerEventArgs e)
+    {
+        CancelPendingVolumeClose();
+        IsVolumeFlyoutOpen = true;
+        UpdatePointerOverFlyoutState();
+    }
+
+    private void OnVolumeButtonPointerExited(object? sender, PointerEventArgs e) => ScheduleVolumeClose();
+
+    private void OnVolumePanelPointerEntered(object? sender, PointerEventArgs e)
+    {
+        CancelPendingVolumeClose();
+        IsVolumeFlyoutOpen = true;
+        UpdatePointerOverFlyoutState();
+    }
+
+    private void OnVolumePanelPointerExited(object? sender, PointerEventArgs e) => ScheduleVolumeClose();
+
+    private void ScheduleVolumeClose()
+    {
+        _volumeCloseTimer ??= CreateVolumeCloseTimer();
+        _volumeCloseTimer.Stop();
+        _volumeCloseTimer.Start();
+    }
+
+    private DispatcherTimer CreateVolumeCloseTimer()
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
+        timer.Tick += OnVolumeCloseTimerTick;
+        return timer;
+    }
+
+    private void OnVolumeCloseTimerTick(object? sender, EventArgs e)
+    {
+        CancelPendingVolumeClose();
+        CheckAndCloseVolumePanel();
+    }
+
+    private void CancelPendingVolumeClose() => _volumeCloseTimer?.Stop();
+
+    private void CheckAndCloseVolumePanel()
+    {
+        if (_volumeButton?.IsPointerOver == true ||
+            _volumePanel?.IsPointerOver  == true ||
+            _volumePopup?.IsPointerOver  == true)
+        {
+            IsVolumeFlyoutOpen = true;
+            UpdatePointerOverFlyoutState();
+            return;
+        }
+
+        IsVolumeFlyoutOpen = false;
+        UpdatePointerOverFlyoutState();
+    }
+
+    private void UpdatePointerOverFlyoutState() => IsPointerOverFlyout = IsVolumeFlyoutOpen || _isSpeedFlyoutOpen;
+
+    private void OnSpeedFlyoutOpened(object? sender, EventArgs e)
+    {
+        _isSpeedFlyoutOpen = true;
+        UpdatePointerOverFlyoutState();
+    }
+
+    private void OnSpeedFlyoutClosed(object? sender, EventArgs e)
+    {
+        _isSpeedFlyoutOpen = false;
+        UpdatePointerOverFlyoutState();
+    }
+
+    private void OnSliderPointerPressed(object? sender, PointerPressedEventArgs e) =>
+        RaiseEvent(new RoutedEventArgs(SeekStartedEvent));
+
+    private void OnSliderPointerReleased(object? sender, PointerReleasedEventArgs e) =>
+        RaiseEvent(new RoutedEventArgs(SeekEndedEvent));
+
+    private void OnSliderValueChanged(object? sender, RangeBaseValueChangedEventArgs e) =>
+        RaiseEvent(new RangeBaseValueChangedEventArgs(e.OldValue, e.NewValue, SeekMovedEvent));
+}
