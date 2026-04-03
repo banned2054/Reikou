@@ -126,6 +126,11 @@ public partial class MainWindow : Window
         if (e.PropertyName == nameof(MainWindowViewModel.Volume))
         {
             Player.Service?.SetProperty("volume", _viewModel.Volume);
+
+            if (_viewModel.Volume > 0)
+            {
+                _lastVolume = _viewModel.Volume;
+            }
         }
     }
 

@@ -81,30 +81,51 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center">
-                            <Button x:Name="PART_VolumeButton" Classes="IconButton" Width="32" Height="32">
-                                <Button.Flyout>
-                                    <Flyout Placement="Top" FlyoutPresenterClasses="VolumeFlyout">
-                                        <Grid Width="46" Height="130">
-                                            <Slider Orientation="Vertical" Height="100"
-                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                    Minimum="0" Maximum="200"
+                            <Grid Width="32" Height="32">
+                                <Button x:Name="PART_VolumeButton"
+                                        Command="{TemplateBinding ToggleMuteCommand}"
+                                        Classes="IconButton"
+                                        Width="32"
+                                        Height="32"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Panel>
+                                        <Svg Path="avares://TestMpv/Assets/ico-volume-off.svg"
+                                             IsVisible="{Binding IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
+                                             Stretch="Uniform" />
+                                        <Svg Path="avares://TestMpv/Assets/ico-volume.svg"
+                                             IsVisible="{Binding !IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
+                                             Stretch="Uniform" />
+                                    </Panel>
+                                </Button>
+
+                                <Popup x:Name="PART_VolumePopup"
+                                       IsOpen="{Binding IsVolumeFlyoutOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                       Placement="Top"
+                                       PlacementTarget="{Binding ElementName=PART_VolumeButton}"
+                                       VerticalOffset="-8"
+                                       IsLightDismissEnabled="False">
+                                    <Border x:Name="PART_VolumePanel"
+                                            Width="46"
+                                            Height="130"
+                                            Background="#CC000000"
+                                            CornerRadius="8">
+                                        <Grid Width="46" Height="130" Background="Transparent">
+                                            <Slider Orientation="Vertical"
+                                                    Height="100"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    Minimum="0"
+                                                    Maximum="200"
                                                     Value="{Binding Volume, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
                                                 <Slider.RenderTransform>
                                                     <TranslateTransform X="-2" />
                                                 </Slider.RenderTransform>
                                             </Slider>
                                         </Grid>
-                                    </Flyout>
-                                </Button.Flyout>
-                                <Panel>
-                                    <Svg Path="avares://TestMpv/Assets/ico-volume-off.svg"
-                                         IsVisible="{Binding IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
-                                         Stretch="Uniform" />
-                                    <Svg Path="avares://TestMpv/Assets/ico-volume.svg"
-                                         IsVisible="{Binding !IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
-                                         Stretch="Uniform" />
-                                </Panel>
-                            </Button>
+                                    </Border>
+                                </Popup>
+                            </Grid>
                             <Button x:Name="PART_DanmakuButton" Command="{TemplateBinding ToggleDanmakuCommand}"
                                     Classes="IconButton" Width="32" Height="32">
                                 <Panel>

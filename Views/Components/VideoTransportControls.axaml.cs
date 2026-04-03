@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using System;
 
 namespace TestMpv.Views.Components;
@@ -234,7 +235,11 @@ public class VideoTransportControls : TemplatedControl
     private Button? _nextButton;
     private Button? _danmakuButton;
     private Button? _volumeButton;
+    private Popup? _volumePopup;
+    private Border? _volumePanel;
     private Button? _speedButton;
+    private DispatcherTimer? _volumeCloseTimer;
+    private bool _isSpeedFlyoutOpen;
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
@@ -248,15 +253,16 @@ public class VideoTransportControls : TemplatedControl
             _timeSlider.ValueChanged -= OnSliderValueChanged;
         }
 
-        if (_volumeButton is { Flyout: not null })
+        if (_volumeButton != null)
         {
-            _volumeButton.Flyout.Opened -= OnVolumeFlyoutOpened;
-            _volumeButton.Flyout.Closed -= OnVolumeFlyoutClosed;
-            if (_volumeButton.Flyout is Flyout { Content: Control content })
-            {
-                content.PointerEntered -= OnFlyoutContentPointerEntered;
-                content.PointerExited  -= OnFlyoutContentPointerExited;
-            }
+            _volumeButton.PointerEntered -= OnVolumeButtonPointerEntered;
+            _volumeButton.PointerExited  -= OnVolumeButtonPointerExited;
+        }
+
+        if (_volumePanel != null)
+        {
+            _volumePanel.PointerEntered -= OnVolumePanelPointerEntered;
+            _volumePanel.PointerExited  -= OnVolumePanelPointerExited;
         }
 
         if (_speedButton is { Flyout: not null })
@@ -279,6 +285,8 @@ public class VideoTransportControls : TemplatedControl
         _nextButton      = e.NameScope.Find<Button>("PART_NextButton");
         _danmakuButton   = e.NameScope.Find<Button>("PART_DanmakuButton");
         _volumeButton    = e.NameScope.Find<Button>("PART_VolumeButton");
+        _volumePopup     = e.NameScope.Find<Popup>("PART_VolumePopup");
+        _volumePanel     = e.NameScope.Find<Border>("PART_VolumePanel");
         _speedButton     = e.NameScope.Find<Button>("PART_SpeedButton");
 
         // Attach new events
@@ -291,16 +299,16 @@ public class VideoTransportControls : TemplatedControl
             _timeSlider.ValueChanged += OnSliderValueChanged;
         }
 
-        if (_volumeButton is { Flyout: not null })
+        if (_volumeButton != null)
         {
-            _volumeButton.Flyout.Opened += OnVolumeFlyoutOpened;
-            _volumeButton.Flyout.Closed += OnVolumeFlyoutClosed;
+            _volumeButton.PointerEntered += OnVolumeButtonPointerEntered;
+            _volumeButton.PointerExited  += OnVolumeButtonPointerExited;
+        }
 
-            if (_volumeButton.Flyout is Flyout { Content: Control content2 })
-            {
-                content2.PointerEntered += OnFlyoutContentPointerEntered;
-                content2.PointerExited  += OnFlyoutContentPointerExited;
-            }
+        if (_volumePanel != null)
+        {
+            _volumePanel.PointerEntered += OnVolumePanelPointerEntered;
+            _volumePanel.PointerExited  += OnVolumePanelPointerExited;
         }
 
         if (_speedButton is { Flyout: not null })
@@ -318,24 +326,92 @@ public class VideoTransportControls : TemplatedControl
 
     public void HideFlyouts()
     {
-        _volumeButton?.Flyout?.Hide();
+        CancelPendingVolumeClose();
+        IsVolumeFlyoutOpen = false;
+        UpdatePointerOverFlyoutState();
         _speedButton?.Flyout?.Hide();
     }
 
-    private void OnFlyoutContentPointerEntered(object? sender, PointerEventArgs e) => IsPointerOverFlyout = true;
-    private void OnFlyoutContentPointerExited(object?  sender, PointerEventArgs e) => IsPointerOverFlyout = false;
-
-    private void OnVolumeFlyoutOpened(object? sender, EventArgs e) => IsVolumeFlyoutOpen = true;
-
-    private void OnVolumeFlyoutClosed(object? sender, EventArgs e)
+    private void OnFlyoutContentPointerEntered(object? sender, PointerEventArgs e)
     {
-        IsVolumeFlyoutOpen  = false;
-        IsPointerOverFlyout = false;
+        _isSpeedFlyoutOpen = true;
+        UpdatePointerOverFlyoutState();
     }
 
-    private void OnSpeedFlyoutOpened(object? sender, EventArgs e) => IsPointerOverFlyout = true;
+    private void OnFlyoutContentPointerExited(object? sender, PointerEventArgs e)
+    {
+        _isSpeedFlyoutOpen = false;
+        UpdatePointerOverFlyoutState();
+    }
 
-    private void OnSpeedFlyoutClosed(object? sender, EventArgs e) => IsPointerOverFlyout = false;
+    private void OnVolumeButtonPointerEntered(object? sender, PointerEventArgs e)
+    {
+        CancelPendingVolumeClose();
+        IsVolumeFlyoutOpen = true;
+        UpdatePointerOverFlyoutState();
+    }
+
+    private void OnVolumeButtonPointerExited(object? sender, PointerEventArgs e) => ScheduleVolumeClose();
+
+    private void OnVolumePanelPointerEntered(object? sender, PointerEventArgs e)
+    {
+        CancelPendingVolumeClose();
+        IsVolumeFlyoutOpen = true;
+        UpdatePointerOverFlyoutState();
+    }
+
+    private void OnVolumePanelPointerExited(object? sender, PointerEventArgs e) => ScheduleVolumeClose();
+
+    private void ScheduleVolumeClose()
+    {
+        _volumeCloseTimer ??= CreateVolumeCloseTimer();
+        _volumeCloseTimer.Stop();
+        _volumeCloseTimer.Start();
+    }
+
+    private DispatcherTimer CreateVolumeCloseTimer()
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
+        timer.Tick += OnVolumeCloseTimerTick;
+        return timer;
+    }
+
+    private void OnVolumeCloseTimerTick(object? sender, EventArgs e)
+    {
+        CancelPendingVolumeClose();
+        CheckAndCloseVolumePanel();
+    }
+
+    private void CancelPendingVolumeClose() => _volumeCloseTimer?.Stop();
+
+    private void CheckAndCloseVolumePanel()
+    {
+        if (_volumeButton?.IsPointerOver == true ||
+            _volumePanel?.IsPointerOver == true ||
+            _volumePopup?.IsPointerOver == true)
+        {
+            IsVolumeFlyoutOpen = true;
+            UpdatePointerOverFlyoutState();
+            return;
+        }
+
+        IsVolumeFlyoutOpen = false;
+        UpdatePointerOverFlyoutState();
+    }
+
+    private void UpdatePointerOverFlyoutState() => IsPointerOverFlyout = IsVolumeFlyoutOpen || _isSpeedFlyoutOpen;
+
+    private void OnSpeedFlyoutOpened(object? sender, EventArgs e)
+    {
+        _isSpeedFlyoutOpen = true;
+        UpdatePointerOverFlyoutState();
+    }
+
+    private void OnSpeedFlyoutClosed(object? sender, EventArgs e)
+    {
+        _isSpeedFlyoutOpen = false;
+        UpdatePointerOverFlyoutState();
+    }
 
     private void OnSliderPointerPressed(object? sender, PointerPressedEventArgs e) =>
         RaiseEvent(new RoutedEventArgs(SeekStartedEvent));
