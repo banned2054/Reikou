@@ -185,8 +185,8 @@ public class MpvService : IDisposable
                 err = LibMpv.SetProperty(_handle, name, MpvFormat.String, ref s);
                 break;
             case bool b :
-                long lBool = b ? 1 : 0;
-                err = LibMpv.SetProperty(_handle, name, MpvFormat.Flag, ref lBool);
+                var flag = b ? 1 : 0;
+                err = LibMpv.SetProperty(_handle, name, MpvFormat.Flag, ref flag);
                 break;
             case int i :
                 long lInt = i;

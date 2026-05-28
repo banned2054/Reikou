@@ -3,6 +3,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Reikou.Models;
 using Reikou.Utils;
 using Reikou.ViewModels;
 using System;
@@ -61,23 +62,23 @@ public partial class MainWindow : Window
     private void InitializeCommands()
     {
         _viewModel.PlayPauseCommand = new RelayCommand(_ => Player.TogglePause());
-        _viewModel.PreviousCommand = new RelayCommand(_ =>
+        _viewModel.PreviousCommand = new RelayCommand(async _ =>
         {
             var item = _viewModel.Playlist.GoToPrevious();
             if (item != null)
             {
-                Player.LoadFileAsync(item.FilePath);
+                await Player.LoadFileAsync(item.FilePath);
                 UpdateTitleFromPlaylist();
             }
         });
         _viewModel.BackwardCommand = new RelayCommand(_ => Player.Service?.Command($"seek {-SeekStep} relative"));
         _viewModel.ForwardCommand  = new RelayCommand(_ => Player.Service?.Command($"seek {SeekStep} relative"));
-        _viewModel.NextCommand = new RelayCommand(_ =>
+        _viewModel.NextCommand = new RelayCommand(async _ =>
         {
             var item = _viewModel.Playlist.GoToNext();
             if (item != null)
             {
-                Player.LoadFileAsync(item.FilePath);
+                await Player.LoadFileAsync(item.FilePath);
                 UpdateTitleFromPlaylist();
             }
         });
@@ -119,6 +120,19 @@ public partial class MainWindow : Window
         });
 
         _viewModel.TakeScreenshotCommand = new RelayCommand(_ => TakeScreenshot());
+        _viewModel.SelectPlaylistItemCommand = new RelayCommand(async parameter =>
+        {
+            if (parameter is not PlaylistItem item)
+                return;
+
+            var selectedItem = _viewModel.Playlist.GoToFile(item.FilePath);
+            if (selectedItem == null)
+                return;
+
+            await Player.LoadFileAsync(selectedItem.FilePath);
+            UpdateTitleFromPlaylist();
+            OverlayControls.IsPlaylistPopupOpen = false;
+        });
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -182,9 +196,7 @@ public partial class MainWindow : Window
         var item = _viewModel.Playlist.CurrentItem;
         if (item != null)
         {
-            var index = _viewModel.Playlist.CurrentIndex + 1;
-            var count = _viewModel.Playlist.Items.Count;
-            OverlayControls.Title = $"{item.Title} ({index}/{count})";
+            OverlayControls.Title = item.Title;
         }
     }
 
@@ -207,6 +219,12 @@ public partial class MainWindow : Window
                 _viewModel.IsPlaying     = Player.IsPlaying;
                 _viewModel.PlaybackSpeed = Player.Service.GetProperty<double>("speed");
                 _viewModel.Volume        = Player.Service.GetProperty<double>("volume");
+
+                var currentItem = _viewModel.Playlist.CurrentItem;
+                if (currentItem != null && Player.Duration > 0)
+                {
+                    currentItem.Duration = Player.Duration;
+                }
             }
 
             return true;
@@ -230,7 +248,8 @@ public partial class MainWindow : Window
             if (isMouseOverControlArea                ||
                 _isDraggingSlider                     ||
                 OverlayControls.IsPointerOverToolArea ||
-                OverlayControls.IsPointerOverFlyout)
+                OverlayControls.IsPointerOverFlyout   ||
+                OverlayControls.IsPlaylistPopupActive)
             {
                 _lastMouseMoveTime = DateTime.Now;
                 return;
@@ -468,7 +487,7 @@ public partial class MainWindow : Window
     {
         var pos = e.GetPosition(this);
         // 检查是否真的离开了窗口物理范围，如果还在窗口内部（例如进入了Popup或遮罩层），则忽略
-        if (pos.X > 0 && pos.X < this.Bounds.Width && pos.Y > 0 && pos.Y < this.Bounds.Height)
+        if (pos.X > 0 && pos.X < Bounds.Width && pos.Y > 0 && pos.Y < Bounds.Height)
         {
             return;
         }
@@ -478,12 +497,13 @@ public partial class MainWindow : Window
         DispatcherTimer.RunOnce(() =>
         {
             var isMouseOverControlArea =
-                _lastMousePosition.Y >= (this.Bounds.Height - 80) || _lastMousePosition.Y <= 60;
+                _lastMousePosition.Y >= (Bounds.Height - 80) || _lastMousePosition.Y <= 60;
 
             if (!isMouseOverControlArea                &&
                 !OverlayControls.IsPointerOverToolArea &&
                 !_isDraggingSlider                     &&
-                !OverlayControls.IsPointerOverFlyout)
+                !OverlayControls.IsPointerOverFlyout   &&
+                !OverlayControls.IsPlaylistPopupActive)
             {
                 HideOverlay();
             }

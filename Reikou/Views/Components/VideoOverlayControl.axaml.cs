@@ -3,7 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Reikou.Models;
 using System;
+using System.Collections;
 using System.Windows.Input;
 
 namespace Reikou.Views.Components;
@@ -12,6 +14,7 @@ public class VideoOverlayControl : TemplatedControl
 {
     // --- 内部状态 ---
     private int _pointerOverCount;
+    private int _toolAreaPointerOverCount;
 
     // --- Styled Properties ---
 
@@ -88,7 +91,7 @@ public class VideoOverlayControl : TemplatedControl
     }
 
     public static readonly StyledProperty<bool> IsMutedProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, bool>(nameof(IsMuted), false);
+        AvaloniaProperty.Register<VideoOverlayControl, bool>(nameof(IsMuted));
 
     public bool IsMuted
     {
@@ -97,7 +100,7 @@ public class VideoOverlayControl : TemplatedControl
     }
 
     public static readonly StyledProperty<bool> IsVolumeFlyoutOpenProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, bool>(nameof(IsVolumeFlyoutOpen), false);
+        AvaloniaProperty.Register<VideoOverlayControl, bool>(nameof(IsVolumeFlyoutOpen));
 
     public bool IsVolumeFlyoutOpen
     {
@@ -106,7 +109,7 @@ public class VideoOverlayControl : TemplatedControl
     }
 
     public static readonly StyledProperty<bool> IsPointerOverFlyoutProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, bool>(nameof(IsPointerOverFlyout), false);
+        AvaloniaProperty.Register<VideoOverlayControl, bool>(nameof(IsPointerOverFlyout));
 
     public bool IsPointerOverFlyout
     {
@@ -114,84 +117,105 @@ public class VideoOverlayControl : TemplatedControl
         set => SetValue(IsPointerOverFlyoutProperty, value);
     }
 
+    public static readonly StyledProperty<IEnumerable?> PlaylistItemsProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, IEnumerable?>(nameof(PlaylistItems));
+
+    public IEnumerable? PlaylistItems
+    {
+        get => GetValue(PlaylistItemsProperty);
+        set => SetValue(PlaylistItemsProperty, value);
+    }
+
+    public static readonly StyledProperty<bool> IsPlaylistPopupOpenProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, bool>(nameof(IsPlaylistPopupOpen));
+
+    public bool IsPlaylistPopupOpen
+    {
+        get => GetValue(IsPlaylistPopupOpenProperty);
+        set => SetValue(IsPlaylistPopupOpenProperty, value);
+    }
+
+    public bool IsPlaylistPopupActive =>
+        IsPlaylistPopupOpen || _playlistPopupPanel?.IsPointerOver == true;
+
     // --- Commands ---
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> PlayPauseCommandProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(PlayPauseCommand));
+    public static readonly StyledProperty<ICommand?> PlayPauseCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(PlayPauseCommand));
 
-    public System.Windows.Input.ICommand? PlayPauseCommand
+    public ICommand? PlayPauseCommand
     {
         get => GetValue(PlayPauseCommandProperty);
         set => SetValue(PlayPauseCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> PreviousCommandProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(PreviousCommand));
+    public static readonly StyledProperty<ICommand?> PreviousCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(PreviousCommand));
 
-    public System.Windows.Input.ICommand? PreviousCommand
+    public ICommand? PreviousCommand
     {
         get => GetValue(PreviousCommandProperty);
         set => SetValue(PreviousCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> BackwardCommandProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(BackwardCommand));
+    public static readonly StyledProperty<ICommand?> BackwardCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(BackwardCommand));
 
-    public System.Windows.Input.ICommand? BackwardCommand
+    public ICommand? BackwardCommand
     {
         get => GetValue(BackwardCommandProperty);
         set => SetValue(BackwardCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> ForwardCommandProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(ForwardCommand));
+    public static readonly StyledProperty<ICommand?> ForwardCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(ForwardCommand));
 
-    public System.Windows.Input.ICommand? ForwardCommand
+    public ICommand? ForwardCommand
     {
         get => GetValue(ForwardCommandProperty);
         set => SetValue(ForwardCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> NextCommandProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(NextCommand));
+    public static readonly StyledProperty<ICommand?> NextCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(NextCommand));
 
-    public System.Windows.Input.ICommand? NextCommand
+    public ICommand? NextCommand
     {
         get => GetValue(NextCommandProperty);
         set => SetValue(NextCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleMuteCommandProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(ToggleMuteCommand));
+    public static readonly StyledProperty<ICommand?> ToggleMuteCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(ToggleMuteCommand));
 
-    public System.Windows.Input.ICommand? ToggleMuteCommand
+    public ICommand? ToggleMuteCommand
     {
         get => GetValue(ToggleMuteCommandProperty);
         set => SetValue(ToggleMuteCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleDanmakuCommandProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(ToggleDanmakuCommand));
+    public static readonly StyledProperty<ICommand?> ToggleDanmakuCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(ToggleDanmakuCommand));
 
-    public System.Windows.Input.ICommand? ToggleDanmakuCommand
+    public ICommand? ToggleDanmakuCommand
     {
         get => GetValue(ToggleDanmakuCommandProperty);
         set => SetValue(ToggleDanmakuCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> ChangeSpeedCommandProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(ChangeSpeedCommand));
+    public static readonly StyledProperty<ICommand?> ChangeSpeedCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(ChangeSpeedCommand));
 
-    public System.Windows.Input.ICommand? ChangeSpeedCommand
+    public ICommand? ChangeSpeedCommand
     {
         get => GetValue(ChangeSpeedCommandProperty);
         set => SetValue(ChangeSpeedCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleFullscreenCommandProperty =
-        AvaloniaProperty.Register<VideoOverlayControl, System.Windows.Input.ICommand?>(nameof(ToggleFullscreenCommand));
+    public static readonly StyledProperty<ICommand?> ToggleFullscreenCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(ToggleFullscreenCommand));
 
-    public System.Windows.Input.ICommand? ToggleFullscreenCommand
+    public ICommand? ToggleFullscreenCommand
     {
         get => GetValue(ToggleFullscreenCommandProperty);
         set => SetValue(ToggleFullscreenCommandProperty, value);
@@ -204,6 +228,15 @@ public class VideoOverlayControl : TemplatedControl
     {
         get => GetValue(TakeScreenshotCommandProperty);
         set => SetValue(TakeScreenshotCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<ICommand?> SelectPlaylistItemCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(SelectPlaylistItemCommand));
+
+    public ICommand? SelectPlaylistItemCommand
+    {
+        get => GetValue(SelectPlaylistItemCommandProperty);
+        set => SetValue(SelectPlaylistItemCommandProperty, value);
     }
 
     public static readonly StyledProperty<bool> IsFullscreenProperty =
@@ -261,6 +294,10 @@ public class VideoOverlayControl : TemplatedControl
 
     private VideoTransportControls? _transportControls;
     private Control?                _rightToolArea;
+    private Control?                _topRightToolArea;
+    private Button?                 _playlistButton;
+    private Popup?                  _playlistPopup;
+    private Border?                 _playlistPopupPanel;
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
@@ -276,8 +313,32 @@ public class VideoOverlayControl : TemplatedControl
 
         if (_rightToolArea != null)
         {
-            _rightToolArea.PointerEntered -= OnRightToolAreaPointerEntered;
-            _rightToolArea.PointerExited  -= OnRightToolAreaPointerExited;
+            _rightToolArea.PointerEntered -= OnToolAreaPointerEntered;
+            _rightToolArea.PointerExited  -= OnToolAreaPointerExited;
+        }
+
+        if (_topRightToolArea != null)
+        {
+            _topRightToolArea.PointerEntered -= OnToolAreaPointerEntered;
+            _topRightToolArea.PointerExited  -= OnToolAreaPointerExited;
+        }
+
+        if (_playlistButton != null)
+        {
+            _playlistButton.Click -= OnPlaylistButtonClick;
+        }
+
+        if (_playlistPopup != null)
+        {
+            _playlistPopup.Opened -= OnPlaylistPopupOpened;
+            _playlistPopup.Closed -= OnPlaylistPopupClosed;
+        }
+
+        if (_playlistPopupPanel != null)
+        {
+            _playlistPopupPanel.RemoveHandler(Button.ClickEvent, OnPlaylistItemButtonClick);
+            _playlistPopupPanel.PointerEntered -= OnPlaylistPopupPointerEntered;
+            _playlistPopupPanel.PointerExited  -= OnPlaylistPopupPointerExited;
         }
 
         // Detach old events
@@ -289,8 +350,12 @@ public class VideoOverlayControl : TemplatedControl
         }
 
         // Find new parts
-        _transportControls = e.NameScope.Find<VideoTransportControls>("PART_TransportControls");
-        _rightToolArea     = e.NameScope.Find<Control>("PART_RightToolArea");
+        _transportControls  = e.NameScope.Find<VideoTransportControls>("PART_TransportControls");
+        _rightToolArea      = e.NameScope.Find<Control>("PART_RightToolArea");
+        _topRightToolArea   = e.NameScope.Find<Control>("PART_TopRightToolArea");
+        _playlistButton     = e.NameScope.Find<Button>("PART_PlaylistButton");
+        _playlistPopup      = e.NameScope.Find<Popup>("PART_PlaylistPopup");
+        _playlistPopupPanel = e.NameScope.Find<Border>("PART_PlaylistPopupPanel");
 
         // Attach new events
         if (_transportControls != null)
@@ -302,14 +367,40 @@ public class VideoOverlayControl : TemplatedControl
 
         if (_rightToolArea != null)
         {
-            _rightToolArea.PointerEntered += OnRightToolAreaPointerEntered;
-            _rightToolArea.PointerExited  += OnRightToolAreaPointerExited;
+            _rightToolArea.PointerEntered += OnToolAreaPointerEntered;
+            _rightToolArea.PointerExited  += OnToolAreaPointerExited;
+        }
+
+        if (_topRightToolArea != null)
+        {
+            _topRightToolArea.PointerEntered += OnToolAreaPointerEntered;
+            _topRightToolArea.PointerExited  += OnToolAreaPointerExited;
+        }
+
+        if (_playlistButton != null)
+        {
+            _playlistButton.Click += OnPlaylistButtonClick;
+        }
+
+        if (_playlistPopup != null)
+        {
+            _playlistPopup.Opened += OnPlaylistPopupOpened;
+            _playlistPopup.Closed += OnPlaylistPopupClosed;
+        }
+
+        if (_playlistPopupPanel != null)
+        {
+            _playlistPopupPanel.AddHandler(Button.ClickEvent, OnPlaylistItemButtonClick,
+                                           RoutingStrategies.Bubble, true);
+            _playlistPopupPanel.PointerEntered += OnPlaylistPopupPointerEntered;
+            _playlistPopupPanel.PointerExited  += OnPlaylistPopupPointerExited;
         }
     }
 
     public void HideFlyouts()
     {
         _transportControls?.HideFlyouts();
+        IsPlaylistPopupOpen = false;
     }
 
     private void OnSeekStartedFromTransport(object? sender, RoutedEventArgs e) =>
@@ -332,7 +423,52 @@ public class VideoOverlayControl : TemplatedControl
             _pointerOverCount--;
     }
 
-    private void OnRightToolAreaPointerEntered(object? sender, PointerEventArgs e) => IsPointerOverToolArea = true;
+    private void OnToolAreaPointerEntered(object? sender, PointerEventArgs e)
+    {
+        _toolAreaPointerOverCount++;
+        IsPointerOverToolArea = _toolAreaPointerOverCount > 0;
+    }
 
-    private void OnRightToolAreaPointerExited(object? sender, PointerEventArgs e) => IsPointerOverToolArea = false;
+    private void OnToolAreaPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (_toolAreaPointerOverCount > 0)
+            _toolAreaPointerOverCount--;
+
+        IsPointerOverToolArea = _toolAreaPointerOverCount > 0;
+    }
+
+    private void OnPlaylistButtonClick(object? sender, RoutedEventArgs e)
+    {
+        IsPlaylistPopupOpen = !IsPlaylistPopupOpen;
+    }
+
+    private void OnPlaylistPopupOpened(object? sender, EventArgs e)
+    {
+        IsPlaylistPopupOpen = true;
+    }
+
+    private void OnPlaylistPopupClosed(object? sender, EventArgs e)
+    {
+        IsPlaylistPopupOpen = false;
+    }
+
+    private void OnPlaylistItemButtonClick(object? sender, RoutedEventArgs e)
+    {
+        if (e.Source is not Button { DataContext: PlaylistItem item })
+            return;
+
+        if (SelectPlaylistItemCommand?.CanExecute(item) != true)
+            return;
+
+        SelectPlaylistItemCommand.Execute(item);
+        e.Handled = true;
+    }
+
+    private void OnPlaylistPopupPointerEntered(object? sender, PointerEventArgs e)
+    {
+    }
+
+    private void OnPlaylistPopupPointerExited(object? sender, PointerEventArgs e)
+    {
+    }
 }

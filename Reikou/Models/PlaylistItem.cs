@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -26,7 +27,27 @@ public class PlaylistItem : INotifyPropertyChanged
     public double Duration
     {
         get => _duration;
-        set => SetField(ref _duration, value);
+        set
+        {
+            if (SetField(ref _duration, value))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DurationText)));
+            }
+        }
+    }
+
+    public string DurationText
+    {
+        get
+        {
+            if (double.IsNaN(_duration) || double.IsInfinity(_duration) || _duration < 0)
+                return "--:--";
+
+            var ts = TimeSpan.FromSeconds(_duration);
+            return ts.TotalHours >= 1
+                ? $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}"
+                : $"{ts.Minutes:D2}:{ts.Seconds:D2}";
+        }
     }
 
     public bool IsPlaying

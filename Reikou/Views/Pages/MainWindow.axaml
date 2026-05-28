@@ -2,14 +2,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:testMpv="clr-namespace:Reikou"
         xmlns:viewModels="clr-namespace:Reikou.ViewModels"
         xmlns:controls="clr-namespace:Reikou.Views.Controls"
         xmlns:components="clr-namespace:Reikou.Views.Components"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Reikou.Views.Pages.MainWindow"
         x:DataType="viewModels:MainWindowViewModel"
-        Title="TestMpv"
+        Title="Reikou"
         DragDrop.AllowDrop="True">
 
     <Window.Styles>
@@ -45,6 +44,7 @@
                                         CurrentTime="{Binding CurrentTime, Mode=TwoWay}"
                                         Duration="{Binding Duration}"
                                         IsPlaying="{Binding IsPlaying}"
+                                        PlaylistItems="{Binding Playlist.Items}"
                                         TimeText="{Binding TimeText}"
                                         PlaybackSpeed="{Binding PlaybackSpeed}"
                                         PlaybackSpeedText="{Binding PlaybackSpeedText}"
@@ -60,6 +60,7 @@
                                         ToggleDanmakuCommand="{Binding ToggleDanmakuCommand}"
                                         ChangeSpeedCommand="{Binding ChangeSpeedCommand}"
                                         TakeScreenshotCommand="{Binding TakeScreenshotCommand}"
+                                        SelectPlaylistItemCommand="{Binding SelectPlaylistItemCommand}"
                                         ToggleFullscreenCommand="{Binding ToggleFullscreenCommand}"
                                         SeekStarted="OnSeekStarted"
                                         SeekEnded="OnSeekEnded"

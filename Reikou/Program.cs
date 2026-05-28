@@ -2,6 +2,7 @@ using Avalonia;
 using Serilog;
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -47,17 +48,68 @@ internal class Program
 
     private static IntPtr ResolveLibMpv(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
-        if (libraryName == "libmpv-2.dll")
+        if (libraryName != Native.LibMpv.MpvLibraryName)
         {
-            var baseDir = AppContext.BaseDirectory;
-            var path    = Path.Combine(baseDir, "Libs", "libmpv-2.dll");
-            if (File.Exists(path))
+            return IntPtr.Zero;
+        }
+
+        foreach (var path in GetLibMpvCandidates())
+        {
+            if (File.Exists(path) && NativeLibrary.TryLoad(path, out var handle))
             {
-                return NativeLibrary.Load(path);
+                return handle;
             }
         }
 
-        // 让系统按默认方式继续找
         return IntPtr.Zero;
+    }
+
+    private static string[] GetLibMpvCandidates()
+    {
+        var baseDir = AppContext.BaseDirectory;
+        var rid     = GetCurrentRid();
+        var names   = GetPlatformLibMpvNames();
+
+        return names.SelectMany(name => new[]
+        {
+            Path.Combine(baseDir, "Libs", rid, name),
+            Path.Combine(baseDir, "runtimes", rid, "native", name),
+            Path.Combine(baseDir, "Libs", name),
+            Path.Combine(baseDir, name)
+        }).ToArray();
+    }
+
+    private static string GetCurrentRid()
+    {
+        var os = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? "win"
+            : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                ? "osx"
+                : "linux";
+
+        var arch = RuntimeInformation.ProcessArchitecture switch
+        {
+            Architecture.Arm64 => "arm64",
+            Architecture.Arm   => "arm",
+            Architecture.X86   => "x86",
+            _                  => "x64"
+        };
+
+        return $"{os}-{arch}";
+    }
+
+    private static string[] GetPlatformLibMpvNames()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return ["libmpv-2.dll", "mpv.dll"];
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return ["libmpv.2.dylib", "libmpv.dylib", "mpv.dylib"];
+        }
+
+        return ["libmpv.so.2", "libmpv.so", "mpv.so"];
     }
 }

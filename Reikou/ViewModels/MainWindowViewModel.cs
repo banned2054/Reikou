@@ -32,6 +32,7 @@ internal class MainWindowViewModel : INotifyPropertyChanged
     public ICommand ChangeSpeedCommand      { get; set; } = null!;
     public ICommand ToggleFullscreenCommand { get; set; } = null!;
     public ICommand TakeScreenshotCommand   { get; set; } = null!;
+    public ICommand SelectPlaylistItemCommand { get; set; } = null!;
 
     public double Volume
     {

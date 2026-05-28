@@ -39,12 +39,13 @@
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
 		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
 		<PackageReference Include="Svg.Controls.Skia.Avalonia" Version="11.3.9.2" />
+		<PackageReference Include="Tmds.DBus.Protocol" Version="0.94.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<AvaloniaResource Include="Assets\**" />
 	</ItemGroup>
 	<ItemGroup>
-		<None Include="Libs\libmpv-2.dll">
+		<None Update="Libs\**\*.dll;Libs\**\*.so;Libs\**\*.dylib">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>

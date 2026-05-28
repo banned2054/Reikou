@@ -233,7 +233,6 @@ public class VideoTransportControls : TemplatedControl
     private Button?          _playPauseButton;
     private Button?          _forwardButton;
     private Button?          _nextButton;
-    private Button?          _danmakuButton;
     private Button?          _volumeButton;
     private Popup?           _volumePopup;
     private Border?          _volumePanel;
@@ -283,7 +282,6 @@ public class VideoTransportControls : TemplatedControl
         _playPauseButton = e.NameScope.Find<Button>("PART_PlayPauseButton");
         _forwardButton   = e.NameScope.Find<Button>("PART_ForwardButton");
         _nextButton      = e.NameScope.Find<Button>("PART_NextButton");
-        _danmakuButton   = e.NameScope.Find<Button>("PART_DanmakuButton");
         _volumeButton    = e.NameScope.Find<Button>("PART_VolumeButton");
         _volumePopup     = e.NameScope.Find<Popup>("PART_VolumePopup");
         _volumePanel     = e.NameScope.Find<Border>("PART_VolumePanel");
