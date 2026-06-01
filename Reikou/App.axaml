@@ -6,6 +6,12 @@
 
     <Application.Styles>
         <FluentTheme />
+        <Style Selector="Border.OverlayPopupPanel">
+            <Setter Property="Background" Value="#E61A1A1A" />
+            <Setter Property="BorderBrush" Value="#33FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
     </Application.Styles>
 
     <Application.Resources>

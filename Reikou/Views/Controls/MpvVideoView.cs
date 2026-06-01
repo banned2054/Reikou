@@ -71,6 +71,7 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
         await _glInitSignal.Task;
         var safeUrl = url.Replace("\\", "/");
         _mpvService?.Command($"loadfile \"{safeUrl}\" replace");
+        _mpvService?.SetProperty("pause", false);
 
         var fileName = System.IO.Path.GetFileNameWithoutExtension(url);
         FileLoaded?.Invoke(this, fileName);
