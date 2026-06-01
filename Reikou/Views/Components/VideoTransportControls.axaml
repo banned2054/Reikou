@@ -6,17 +6,6 @@
             <ControlTemplate>
                 <Grid RowDefinitions="Auto,Auto">
                     <Grid.Styles>
-                        <Style Selector="FlyoutPresenter.VolumeFlyout">
-                            <Setter Property="Background" Value="#CC000000" />
-                            <Setter Property="BorderBrush" Value="Transparent" />
-                            <Setter Property="BorderThickness" Value="0" />
-                            <Setter Property="Padding" Value="0" />
-                            <Setter Property="CornerRadius" Value="8" />
-                            <Setter Property="MinWidth" Value="46" />
-                            <Setter Property="MaxWidth" Value="46" />
-                            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Hidden" />
-                            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Hidden" />
-                        </Style>
                         <Style Selector="FlyoutPresenter.SpeedFlyout">
                             <Setter Property="Background" Value="#CC000000" />
                             <Setter Property="BorderBrush" Value="Transparent" />
@@ -106,10 +95,9 @@
                                        VerticalOffset="-8"
                                        IsLightDismissEnabled="False">
                                     <Border x:Name="PART_VolumePanel"
+                                            Classes="OverlayPopupPanel"
                                             Width="46"
-                                            Height="130"
-                                            Background="#CC000000"
-                                            CornerRadius="8">
+                                            Height="130">
                                         <Grid Width="46" Height="130" Background="Transparent">
                                             <Slider Orientation="Vertical"
                                                     Height="100"

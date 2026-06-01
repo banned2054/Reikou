@@ -60,6 +60,8 @@
                                         ToggleDanmakuCommand="{Binding ToggleDanmakuCommand}"
                                         ChangeSpeedCommand="{Binding ChangeSpeedCommand}"
                                         TakeScreenshotCommand="{Binding TakeScreenshotCommand}"
+                                        AddPlaylistItemCommand="{Binding AddPlaylistItemCommand}"
+                                        RemovePlaylistItemCommand="{Binding RemovePlaylistItemCommand}"
                                         SelectPlaylistItemCommand="{Binding SelectPlaylistItemCommand}"
                                         ToggleFullscreenCommand="{Binding ToggleFullscreenCommand}"
                                         SeekStarted="OnSeekStarted"
