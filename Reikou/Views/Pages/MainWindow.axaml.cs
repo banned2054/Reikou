@@ -2,12 +2,16 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Reikou.Models;
+using Reikou.Services;
 using Reikou.Utils;
 using Reikou.ViewModels;
 using System;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Reikou.Views.Pages;
@@ -41,7 +45,8 @@ public partial class MainWindow : Window
     private const double           HideDelaySeconds = 1;
 
     // --- 播放器状态 ---
-    private double _originalSpeed = 1.0;
+    private double                   _originalSpeed = 1.0;
+    private CancellationTokenSource? _playlistDurationLoadCts;
 
     public MainWindow()
     {
@@ -120,6 +125,14 @@ public partial class MainWindow : Window
         });
 
         _viewModel.TakeScreenshotCommand = new RelayCommand(_ => TakeScreenshot());
+        _viewModel.AddPlaylistItemCommand = new RelayCommand(async _ => await AddPlaylistItemsAsync());
+        _viewModel.RemovePlaylistItemCommand = new RelayCommand(async parameter =>
+        {
+            if (parameter is PlaylistItem item)
+            {
+                await RemovePlaylistItemAsync(item);
+            }
+        });
         _viewModel.SelectPlaylistItemCommand = new RelayCommand(async parameter =>
         {
             if (parameter is not PlaylistItem item)
@@ -421,6 +434,8 @@ public partial class MainWindow : Window
 
         if (StringUtils.IsVideoFile(filePath))
         {
+            var durationLoadToken = await ResetPlaylistDurationLoadAsync();
+
             _viewModel.Playlist.LoadFromFile(filePath);
             var item = _viewModel.Playlist.CurrentItem;
             if (item != null)
@@ -428,10 +443,119 @@ public partial class MainWindow : Window
                 await Player.LoadFileAsync(item.FilePath);
                 UpdateTitleFromPlaylist();
             }
+
+            _ = LoadPlaylistDurationsAsync(durationLoadToken);
         }
         else if (StringUtils.IsSubtitleFile(filePath))
         {
             await Player.LoadSubtitleAsync(filePath);
+        }
+    }
+
+    private async Task AddPlaylistItemsAsync()
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+            return;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "添加视频",
+            AllowMultiple = true,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("视频文件")
+                {
+                    Patterns = StringUtils.VideoFilePickerPatterns
+                }
+            ]
+        });
+
+        var filePaths = files
+                       .Select(file => file.Path.LocalPath)
+                       .Where(path => !string.IsNullOrWhiteSpace(path) && StringUtils.IsVideoFile(path))
+                       .ToList();
+
+        if (filePaths.Count == 0)
+            return;
+
+        var wasEmpty          = _viewModel.Playlist.Items.Count == 0;
+        var durationLoadToken = await ResetPlaylistDurationLoadAsync();
+
+        _viewModel.Playlist.AddFiles(filePaths);
+
+        if (wasEmpty && _viewModel.Playlist.CurrentItem is { } currentItem)
+        {
+            await Player.LoadFileAsync(currentItem.FilePath);
+            UpdateTitleFromPlaylist();
+        }
+
+        _ = LoadPlaylistDurationsAsync(durationLoadToken);
+    }
+
+    private async Task RemovePlaylistItemAsync(PlaylistItem item)
+    {
+        var index = _viewModel.Playlist.Items.IndexOf(item);
+        if (index < 0)
+            return;
+
+        var wasCurrent = ReferenceEquals(item, _viewModel.Playlist.CurrentItem);
+        _viewModel.Playlist.RemoveAt(index);
+
+        if (!wasCurrent)
+            return;
+
+        if (_viewModel.Playlist.CurrentItem is { } currentItem)
+        {
+            await Player.LoadFileAsync(currentItem.FilePath);
+            UpdateTitleFromPlaylist();
+            return;
+        }
+
+        Player.Service?.Command("stop");
+        _viewModel.CurrentTime = 0;
+        _viewModel.Duration    = 0;
+        _viewModel.IsPlaying   = false;
+        OverlayControls.Title  = string.Empty;
+    }
+
+    private async Task<CancellationToken> ResetPlaylistDurationLoadAsync()
+    {
+        var previousDurationLoadCts = _playlistDurationLoadCts;
+        if (previousDurationLoadCts != null)
+        {
+            await previousDurationLoadCts.CancelAsync();
+            previousDurationLoadCts.Dispose();
+        }
+
+        _playlistDurationLoadCts = new CancellationTokenSource();
+        return _playlistDurationLoadCts.Token;
+    }
+
+    private async Task LoadPlaylistDurationsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var items = _viewModel.Playlist.Items.ToList();
+
+            foreach (var item in items)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+
+                if (!double.IsNaN(item.Duration) && item.Duration > 0)
+                    continue;
+
+                var duration = await MediaMetadataReader.TryGetDurationAsync(item.FilePath, cancellationToken);
+                if (duration is > 0 && !cancellationToken.IsCancellationRequested)
+                {
+                    item.Duration = duration.Value;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when a different video or playlist replaces the current one.
         }
     }
 

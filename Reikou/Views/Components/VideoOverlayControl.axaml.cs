@@ -233,6 +233,24 @@ public class VideoOverlayControl : TemplatedControl
     public static readonly StyledProperty<ICommand?> SelectPlaylistItemCommandProperty =
         AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(SelectPlaylistItemCommand));
 
+    public static readonly StyledProperty<ICommand?> AddPlaylistItemCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(AddPlaylistItemCommand));
+
+    public ICommand? AddPlaylistItemCommand
+    {
+        get => GetValue(AddPlaylistItemCommandProperty);
+        set => SetValue(AddPlaylistItemCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<ICommand?> RemovePlaylistItemCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(RemovePlaylistItemCommand));
+
+    public ICommand? RemovePlaylistItemCommand
+    {
+        get => GetValue(RemovePlaylistItemCommandProperty);
+        set => SetValue(RemovePlaylistItemCommandProperty, value);
+    }
+
     public ICommand? SelectPlaylistItemCommand
     {
         get => GetValue(SelectPlaylistItemCommandProperty);
