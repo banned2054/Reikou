@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Reikou.Utils;
@@ -7,6 +8,9 @@ public static class StringUtils
 {
     private static readonly string[] VideoExtensions    = [".mp4", ".mkv", ".avi", ".mov", ".flv"];
     private static readonly string[] SubtitleExtensions = [".ass", ".srt", ".vtt", ".sub"];
+
+    public static IReadOnlyList<string> VideoFilePickerPatterns { get; } =
+        Array.ConvertAll(VideoExtensions, extension => $"*{extension}");
 
     public static bool IsVideoFile(string filePathOrExtension)
     {

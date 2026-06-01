@@ -9,7 +9,7 @@ public class PlaylistItem : INotifyPropertyChanged
 {
     private string _filePath = string.Empty;
     private string _title    = string.Empty;
-    private double _duration;
+    private double _duration = double.NaN;
     private bool   _isPlaying;
 
     public string FilePath
