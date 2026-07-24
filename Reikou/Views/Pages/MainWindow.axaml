@@ -5,6 +5,7 @@
         xmlns:viewModels="clr-namespace:Reikou.ViewModels"
         xmlns:controls="clr-namespace:Reikou.Views.Controls"
         xmlns:components="clr-namespace:Reikou.Views.Components"
+        xmlns:danmaku="clr-namespace:Banned.Avalonia.Danmaku.Controls;assembly=Banned.Avalonia.Danmaku"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Reikou.Views.Pages.MainWindow"
         x:DataType="viewModels:MainWindowViewModel"
@@ -33,8 +34,18 @@
         </Style>
     </Window.Styles>
 
-    <Panel>
-        <controls:MpvVideoView x:Name="Player" />
+    <Panel Background="Black">
+        <controls:LiveResizeViewportHost x:Name="LiveResizeViewport"
+                                         ResizeEndDelay="0:0:0.16">
+            <Panel>
+                <controls:MpvVideoView x:Name="Player" />
+
+                <controls:AspectRatioContentHost x:Name="DanmakuContentHost">
+                    <danmaku:DanmakuPlayerView x:Name="DanmakuLayer"
+                                               IsHitTestVisible="False" />
+                </controls:AspectRatioContentHost>
+            </Panel>
+        </controls:LiveResizeViewportHost>
 
         <Panel Background="Transparent"
                PointerPressed="OnVideoPointerPressed"

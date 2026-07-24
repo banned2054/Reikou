@@ -4,11 +4,13 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Banned.Avalonia.Danmaku.Options;
 using Reikou.Models;
 using Reikou.Services;
 using Reikou.Utils;
 using Reikou.ViewModels;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -18,7 +20,12 @@ namespace Reikou.Views.Pages;
 
 public partial class MainWindow : Window
 {
-    private readonly MainWindowViewModel _viewModel;
+    private const uint WmEnterSizeMove = 0x0231;
+    private const uint WmExitSizeMove  = 0x0232;
+
+    private readonly MainWindowViewModel                        _viewModel;
+    private          Win32Properties.CustomWndProcHookCallback? _windowProcHook;
+    private          XmlDanmakuSourceProvider                   _danmakuSourceProvider = new();
 
     // --- 状态标志 ---
     private bool _isDraggingSlider;
@@ -40,9 +47,15 @@ public partial class MainWindow : Window
     private DispatcherTimer? _clickResetTimer;
     private DispatcherTimer? _longPressTimer;
 
-    private       DateTime         _lastMouseMoveTime;
-    private       DispatcherTimer? _uiVisibilityTimer;
-    private const double           HideDelaySeconds = 1;
+    private DateTime         _lastMouseMoveTime;
+    private DispatcherTimer? _playbackUiTimer;
+    private DispatcherTimer? _uiVisibilityTimer;
+
+    private const double HideDelaySeconds = 1;
+
+#if DEBUG
+    private long _lastDanmakuDiagnosticTimestamp;
+#endif
 
     // --- 播放器状态 ---
     private double                   _originalSpeed = 1.0;
@@ -51,6 +64,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DanmakuLayer.PlaybackSession    = Player.PlaybackSession;
+        DanmakuLayer.SourceProvider     = _danmakuSourceProvider;
+        DanmakuLayer.Options.ResizeMode = DanmakuResizeMode.Immediate;
+
         _viewModel                 =  new MainWindowViewModel();
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
@@ -60,6 +77,10 @@ public partial class MainWindow : Window
         InitializeEvents();
         StartSyncTimer();
         StartUiVisibilityTimer(); // 启动UI显示检测定时器
+
+#if DEBUG
+        ApplyResizeDiagnosticLayerSelection();
+#endif
     }
 
     private double _lastVolume = 100.0;
@@ -76,8 +97,8 @@ public partial class MainWindow : Window
                 UpdateTitleFromPlaylist();
             }
         });
-        _viewModel.BackwardCommand = new RelayCommand(_ => Player.Service?.Command($"seek {-SeekStep} relative"));
-        _viewModel.ForwardCommand  = new RelayCommand(_ => Player.Service?.Command($"seek {SeekStep} relative"));
+        _viewModel.BackwardCommand = new RelayCommand(_ => Player.SeekRelative(-SeekStep));
+        _viewModel.ForwardCommand  = new RelayCommand(_ => Player.SeekRelative(SeekStep));
         _viewModel.NextCommand = new RelayCommand(async _ =>
         {
             var item = _viewModel.Playlist.GoToNext();
@@ -101,10 +122,7 @@ public partial class MainWindow : Window
             }
         });
 
-        _viewModel.ToggleDanmakuCommand = new RelayCommand(_ =>
-        {
-            // TODO: Implement Danmaku toggle logic
-        });
+        _viewModel.ToggleDanmakuCommand = new RelayCommand(_ => { DanmakuLayer.IsVisible = !DanmakuLayer.IsVisible; });
 
         _viewModel.ChangeSpeedCommand = new RelayCommand(_ =>
         {
@@ -124,7 +142,7 @@ public partial class MainWindow : Window
             _viewModel.IsFullscreen = WindowState == WindowState.FullScreen;
         });
 
-        _viewModel.TakeScreenshotCommand = new RelayCommand(_ => TakeScreenshot());
+        _viewModel.TakeScreenshotCommand  = new RelayCommand(_ => TakeScreenshot());
         _viewModel.AddPlaylistItemCommand = new RelayCommand(async _ => await AddPlaylistItemsAsync());
         _viewModel.RemovePlaylistItemCommand = new RelayCommand(async parameter =>
         {
@@ -172,10 +190,45 @@ public partial class MainWindow : Window
         // 窗口输入事件
         KeyDown += OnWindowKeyDown;
         KeyUp   += OnWindowKeyUp;
-
         // 全局鼠标事件（使用 Tunnel 策略，防止被 Popup/LightDismiss 拦截）
         AddHandler(PointerMovedEvent, OnWindowPointerMoved, RoutingStrategies.Tunnel   | RoutingStrategies.Bubble);
         AddHandler(PointerExitedEvent, OnWindowPointerExited, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+
+        if (OperatingSystem.IsWindows())
+        {
+            _windowProcHook = OnWindowsMessage;
+            Win32Properties.AddWndProcHookCallback(this, _windowProcHook);
+        }
+
+        PropertyChanged += (_, args) =>
+        {
+            if (args.Property == WindowStateProperty)
+            {
+                LiveResizeViewport.CommitOnNextArrange();
+            }
+
+            if (args.Property == ClientSizeProperty)
+            {
+                LiveResizeViewport.PreviewDisplaySize(ClientSize);
+            }
+        };
+        ScalingChanged += (_, _) =>
+        {
+            LiveResizeViewport.CommitOnNextArrange();
+            Player.RefreshVideoFrame();
+        };
+        Closed += (_, _) =>
+        {
+            if (_windowProcHook != null)
+            {
+                Win32Properties.RemoveWndProcHookCallback(this, _windowProcHook);
+                _windowProcHook = null;
+            }
+
+            _playbackUiTimer?.Stop();
+            _uiVisibilityTimer?.Stop();
+            _playlistDurationLoadCts?.Cancel();
+        };
 
         // 初始化鼠标长按检测
         _longPressTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(LongPressDelayMs) };
@@ -192,7 +245,7 @@ public partial class MainWindow : Window
             {
                 // 更新当前播放项的标题（如果路径匹配）
                 var currentItem = _viewModel.Playlist.CurrentItem;
-                if (currentItem != null && System.IO.Path.GetFileNameWithoutExtension(currentItem.FilePath) == fileName)
+                if (currentItem != null && Path.GetFileNameWithoutExtension(currentItem.FilePath) == fileName)
                 {
                     UpdateTitleFromPlaylist();
                 }
@@ -202,6 +255,26 @@ public partial class MainWindow : Window
                 }
             });
         };
+
+        DanmakuLayer.LoadFailed += (_, e) =>
+        {
+            Debug.WriteLine($"[Danmaku] Failed to load '{e.MediaId}': {e.Exception}");
+        };
+    }
+
+    private IntPtr OnWindowsMessage(IntPtr hwnd, uint message, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        switch (message)
+        {
+            case WmEnterSizeMove :
+                LiveResizeViewport.BeginLiveResize();
+                break;
+            case WmExitSizeMove :
+                Dispatcher.UIThread.Post(LiveResizeViewport.EndLiveResize, DispatcherPriority.Input);
+                break;
+        }
+
+        return IntPtr.Zero;
     }
 
     private void UpdateTitleFromPlaylist()
@@ -215,33 +288,48 @@ public partial class MainWindow : Window
 
     private void StartSyncTimer()
     {
-        // 负责 UI 状态同步（进度条、播放速度显示等）
-        DispatcherTimer.Run(() =>
+        // UI controls stay on a lower update rate; all values come from the
+        // observer-backed snapshot and no longer call into mpv synchronously.
+        _playbackUiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+        _playbackUiTimer.Tick += (_, _) =>
         {
-            if (_isDraggingSlider) return true;
+            if (_isDraggingSlider) return;
             if (_updateTimerCooldown > 0)
             {
                 _updateTimerCooldown--;
-                return true;
+                return;
             }
 
-            if (Player.Service != null)
+            if (Player.Service == null) return;
+
+            var state = Player.PlaybackState;
+            _viewModel.Duration            = state.Duration;
+            _viewModel.CurrentTime         = state.Position;
+            _viewModel.IsPlaying           = !state.IsPaused;
+            _viewModel.PlaybackSpeed       = state.Speed;
+            _viewModel.Volume              = state.Volume;
+            DanmakuContentHost.AspectRatio = state.VideoAspectRatio;
+
+            var currentItem = _viewModel.Playlist.CurrentItem;
+            if (currentItem != null && state.Duration > 0)
             {
-                _viewModel.Duration      = Player.Duration;
-                _viewModel.CurrentTime   = Player.Position;
-                _viewModel.IsPlaying     = Player.IsPlaying;
-                _viewModel.PlaybackSpeed = Player.Service.GetProperty<double>("speed");
-                _viewModel.Volume        = Player.Service.GetProperty<double>("volume");
-
-                var currentItem = _viewModel.Playlist.CurrentItem;
-                if (currentItem != null && Player.Duration > 0)
-                {
-                    currentItem.Duration = Player.Duration;
-                }
+                currentItem.Duration = state.Duration;
             }
 
-            return true;
-        }, TimeSpan.FromMilliseconds(200));
+#if DEBUG
+            var now = Stopwatch.GetTimestamp();
+            if (now - _lastDanmakuDiagnosticTimestamp >= Stopwatch.Frequency)
+            {
+                Debug.WriteLine(
+                                $"[Danmaku] source items={DanmakuLayer.DanmakuCount}; "                        +
+                                $"loading={DanmakuLayer.IsLoading}; "                                         +
+                                $"viewport={DanmakuLayer.Bounds.Width:0.#}x{DanmakuLayer.Bounds.Height:0.#}"
+                               );
+                _lastDanmakuDiagnosticTimestamp = now;
+            }
+#endif
+        };
+        _playbackUiTimer.Start();
     }
 
     private void StartUiVisibilityTimer()
@@ -269,12 +357,10 @@ public partial class MainWindow : Window
             }
 
             // 判断距离最后一次移动鼠标是否超过了设定的秒数
-            if ((DateTime.Now - _lastMouseMoveTime).TotalSeconds >= HideDelaySeconds)
+            if (!((DateTime.Now - _lastMouseMoveTime).TotalSeconds >= HideDelaySeconds)) return;
+            if (OverlayControls.Opacity > 0)
             {
-                if (OverlayControls.Opacity > 0)
-                {
-                    HideOverlay();
-                }
+                HideOverlay();
             }
         };
         _uiVisibilityTimer.Start();
@@ -287,6 +373,7 @@ public partial class MainWindow : Window
     private void OnSeekStarted(object? sender, RoutedEventArgs e)
     {
         _isDraggingSlider = true;
+        Player.BeginSeek(_viewModel.CurrentTime);
     }
 
     private void OnSeekEnded(object? sender, RoutedEventArgs e)
@@ -300,7 +387,8 @@ public partial class MainWindow : Window
 
     private void OnSeekMoved(object? sender, RangeBaseValueChangedEventArgs e)
     {
-        if (_isDraggingSlider) Player.SeekFast(e.NewValue);
+        if (!_isDraggingSlider) return;
+        Player.SeekFast(e.NewValue);
     }
 
     #endregion
@@ -328,7 +416,7 @@ public partial class MainWindow : Window
             if (_isFastForwarding)
             {
                 double dir = e.Key == Key.Right ? 1 : -1;
-                Player.Service?.Command($"seek {dir * 2} relative+keyframes");
+                Player.SeekRelativeFast(dir * 2);
             }
         }
         else
@@ -364,7 +452,7 @@ public partial class MainWindow : Window
     private void StartKeyFastForward(Key key)
     {
         _isFastForwarding = true;
-        _originalSpeed    = Player.Service?.GetProperty<double>("speed") ?? 1.0;
+        _originalSpeed    = Player.PlaybackState.Speed;
     }
 
     private void StopKeyFastForward()
@@ -399,7 +487,7 @@ public partial class MainWindow : Window
     {
         if (!_isMousePhysicallyDown) return;
         _isMouseLongPressing = true;
-        _originalSpeed       = Player.Service?.GetProperty<double>("speed") ?? 1.0;
+        _originalSpeed       = Player.PlaybackState.Speed;
         Player.Service?.SetProperty("speed", 2.0);
     }
 
@@ -450,6 +538,19 @@ public partial class MainWindow : Window
         {
             await Player.LoadSubtitleAsync(filePath);
         }
+        else if (StringUtils.IsDanmakuFile(filePath))
+        {
+            LoadDanmaku(filePath);
+        }
+    }
+
+    private void LoadDanmaku(string filePath)
+    {
+        _danmakuSourceProvider = _danmakuSourceProvider.WithSource(
+                                                                   Player.PlaybackSession?.CurrentMediaId,
+                                                                   filePath);
+        DanmakuLayer.SourceProvider = _danmakuSourceProvider;
+        DanmakuLayer.IsVisible      = true;
     }
 
     private async Task AddPlaylistItemsAsync()
@@ -460,7 +561,7 @@ public partial class MainWindow : Window
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "添加视频",
+            Title         = "添加视频",
             AllowMultiple = true,
             FileTypeFilter =
             [
@@ -512,7 +613,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        Player.Service?.Command("stop");
+        Player.Stop(clearMedia : true);
         _viewModel.CurrentTime = 0;
         _viewModel.Duration    = 0;
         _viewModel.IsPlaying   = false;
@@ -663,6 +764,35 @@ public partial class MainWindow : Window
         OverlayControls.HideFlyouts();                     // 关闭音量等所有Flyout面板
         this.Cursor = new Cursor(StandardCursorType.None); // 隐藏鼠标指针
     }
+
+#if DEBUG
+    private void ApplyResizeDiagnosticLayerSelection()
+    {
+        var configuredLayers = Environment.GetEnvironmentVariable("REIKOU_RESIZE_LAYERS");
+        if (string.IsNullOrWhiteSpace(configuredLayers))
+        {
+            return;
+        }
+
+        var layers = configuredLayers.Split(
+                                            ',',
+                                            StringSplitOptions.RemoveEmptyEntries |
+                                            StringSplitOptions.TrimEntries
+                                           );
+
+        static bool Contains(string[] values, string layer) =>
+            values.Any(value => string.Equals(value, layer, StringComparison.OrdinalIgnoreCase));
+
+        Player.IsVisible = Contains(layers, "video");
+        DanmakuLayer.IsVisible = Contains(layers, "danmaku");
+        OverlayControls.IsVisible = Contains(layers, "overlay");
+
+        Debug.WriteLine(
+                        $"[ResizeLayers] video={Player.IsVisible}; danmaku={DanmakuLayer.IsVisible}; " +
+                        $"overlay={OverlayControls.IsVisible}"
+                       );
+    }
+#endif
 
     #endregion
 }

@@ -10,11 +10,17 @@ internal class MainWindowViewModel : INotifyPropertyChanged
 {
     private double _currentTime;
     private double _duration;
-    private string _timeText = "00:00 / 00:00";
-    private bool   _isPlaying;
     private double _playbackSpeed      = 1.0;
-    private double _longPressJumpSpeed = 0.5;
     private double _volume             = 100.0;
+    private double _longPressJumpSpeed = 0.5;
+    private double _lastUiUpdateTime;
+    private double _lastTimeTextCurrent;
+    private double _lastTimeTextDuration;
+
+    private string _timeText = "00:00 / 00:00";
+
+    private bool _isPlaying;
+    private bool _isFullscreen;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -22,16 +28,16 @@ internal class MainWindowViewModel : INotifyPropertyChanged
     public PlaylistViewModel Playlist { get; } = new();
 
     // --- Commands ---
-    public ICommand PlayPauseCommand        { get; set; } = null!;
-    public ICommand PreviousCommand         { get; set; } = null!;
-    public ICommand BackwardCommand         { get; set; } = null!;
-    public ICommand ForwardCommand          { get; set; } = null!;
-    public ICommand NextCommand             { get; set; } = null!;
-    public ICommand ToggleMuteCommand       { get; set; } = null!;
-    public ICommand ToggleDanmakuCommand    { get; set; } = null!;
-    public ICommand ChangeSpeedCommand      { get; set; } = null!;
-    public ICommand ToggleFullscreenCommand { get; set; } = null!;
-    public ICommand TakeScreenshotCommand   { get; set; } = null!;
+    public ICommand PlayPauseCommand          { get; set; } = null!;
+    public ICommand PreviousCommand           { get; set; } = null!;
+    public ICommand BackwardCommand           { get; set; } = null!;
+    public ICommand ForwardCommand            { get; set; } = null!;
+    public ICommand NextCommand               { get; set; } = null!;
+    public ICommand ToggleMuteCommand         { get; set; } = null!;
+    public ICommand ToggleDanmakuCommand      { get; set; } = null!;
+    public ICommand ChangeSpeedCommand        { get; set; } = null!;
+    public ICommand ToggleFullscreenCommand   { get; set; } = null!;
+    public ICommand TakeScreenshotCommand     { get; set; } = null!;
     public ICommand AddPlaylistItemCommand    { get; set; } = null!;
     public ICommand RemovePlaylistItemCommand { get; set; } = null!;
     public ICommand SelectPlaylistItemCommand { get; set; } = null!;
@@ -102,8 +108,6 @@ internal class MainWindowViewModel : INotifyPropertyChanged
         ? "倍速"
         : $"{_playbackSpeed:0.##}X";
 
-    private bool _isFullscreen;
-
     public bool IsFullscreen
     {
         get => _isFullscreen;
@@ -145,8 +149,6 @@ internal class MainWindowViewModel : INotifyPropertyChanged
         return true;
     }
 
-    private double _lastUiUpdateTime;
-
     public void UpdateTimeFromPlayer(double time, double duration)
     {
         if (Math.Abs(time - _lastUiUpdateTime) < 0.1)
@@ -157,7 +159,4 @@ internal class MainWindowViewModel : INotifyPropertyChanged
         CurrentTime = time;
         Duration    = duration;
     }
-
-    private double _lastTimeTextCurrent;
-    private double _lastTimeTextDuration;
 }
