@@ -1,8 +1,11 @@
 using Microsoft.Extensions.Logging;
+using Reikou.Models;
 using Reikou.Models.Enums;
 using Reikou.Models.Structs;
 using Reikou.Native;
 using System;
+using System.Collections.Immutable;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,13 +14,20 @@ namespace Reikou.Services;
 
 public class MpvService : IDisposable
 {
-    private const ulong DurationObserverId    = 1;
-    private const ulong PositionObserverId    = 2;
-    private const ulong PauseObserverId       = 3;
-    private const ulong SpeedObserverId       = 4;
-    private const ulong VolumeObserverId      = 5;
-    private const ulong VideoWidthObserverId  = 6;
-    private const ulong VideoHeightObserverId = 7;
+    private const ulong DurationObserverId               = 1;
+    private const ulong PositionObserverId               = 2;
+    private const ulong PauseObserverId                  = 3;
+    private const ulong SpeedObserverId                  = 4;
+    private const ulong VolumeObserverId                 = 5;
+    private const ulong VideoWidthObserverId             = 6;
+    private const ulong VideoHeightObserverId            = 7;
+    private const ulong TrackListObserverId              = 8;
+    private const ulong AudioTrackObserverId             = 9;
+    private const ulong SubtitleTrackObserverId          = 10;
+    private const ulong SecondarySubtitleTrackObserverId = 11;
+    private const ulong SubtitleDelayObserverId          = 12;
+    private const ulong AudioDelayObserverId             = 13;
+    private const ulong SubtitleVisibilityObserverId     = 14;
 
     private readonly ILogger<MpvService> _logger;
 
@@ -198,10 +208,10 @@ public class MpvService : IDisposable
         throw new NotSupportedException($"Type {typeof(T)} is not supported by MpvService.");
     }
 
-    public void SetProperty<T>(string name, T value)
+    public MpvStatus SetProperty<T>(string name, T value)
     {
         CheckDisposed();
-        MpvStatus err = MpvStatus.Success;
+        MpvStatus err;
 
         switch (value)
         {
@@ -227,7 +237,30 @@ public class MpvService : IDisposable
         }
 
         if (err < 0) HandleError(err, $"SetProperty {name}={value}");
+        return err;
     }
+
+    public MpvStatus SelectAudioTrack(long trackId) => SetTrackProperty("aid", trackId);
+
+    public MpvStatus DisableAudioTrack() => SetProperty("aid", "no");
+
+    public MpvStatus SelectSubtitleTrack(long trackId) => SetTrackProperty("sid", trackId);
+
+    public MpvStatus DisableSubtitleTrack() => SetProperty("sid", "no");
+
+    public MpvStatus SelectSecondarySubtitleTrack(long trackId) => SetTrackProperty("secondary-sid", trackId);
+
+    public MpvStatus DisableSecondarySubtitleTrack() => SetProperty("secondary-sid", "no");
+
+    public MpvStatus SetSubtitleVisibility(bool isVisible) => SetProperty("sub-visibility", isVisible);
+
+    public MpvStatus SetSubtitleDelay(double seconds) => SetFiniteDoubleProperty("sub-delay", seconds);
+
+    public MpvStatus ResetSubtitleDelay() => SetSubtitleDelay(0);
+
+    public MpvStatus SetAudioDelay(double seconds) => SetFiniteDoubleProperty("audio-delay", seconds);
+
+    public MpvStatus ResetAudioDelay() => SetAudioDelay(0);
 
     private void StartPlaybackStateObservation()
     {
@@ -238,6 +271,13 @@ public class MpvService : IDisposable
         ObserveProperty(VolumeObserverId, "volume", MpvFormat.Double);
         ObserveProperty(VideoWidthObserverId, "video-out-params/dw", MpvFormat.Long);
         ObserveProperty(VideoHeightObserverId, "video-out-params/dh", MpvFormat.Long);
+        ObserveProperty(TrackListObserverId, "track-list", MpvFormat.Node);
+        ObserveProperty(AudioTrackObserverId, "aid", MpvFormat.String);
+        ObserveProperty(SubtitleTrackObserverId, "sid", MpvFormat.String);
+        ObserveProperty(SecondarySubtitleTrackObserverId, "secondary-sid", MpvFormat.String);
+        ObserveProperty(SubtitleDelayObserverId, "sub-delay", MpvFormat.Double);
+        ObserveProperty(AudioDelayObserverId, "audio-delay", MpvFormat.Double);
+        ObserveProperty(SubtitleVisibilityObserverId, "sub-visibility", MpvFormat.Flag);
 
         var eventLoopCts = new CancellationTokenSource();
         _eventLoopCts  = eventLoopCts;
@@ -274,6 +314,9 @@ public class MpvService : IDisposable
                         ApplyObservedProperty(mpvEvent);
                         break;
                     case MpvEventId.StartFile :
+                        ResetTracksForNewMedia();
+                        PublishPlaybackEvent(mpvEvent);
+                        break;
                     case MpvEventId.FileLoaded :
                     case MpvEventId.EndFile :
                     case MpvEventId.Seek :
@@ -311,14 +354,8 @@ public class MpvService : IDisposable
             {
                 Position = ReadDouble(property) is { } position ? Math.Max(0, position) : 0
             },
-            PauseObserverId => currentState with
-            {
-                IsPaused = ReadFlag(property) ?? true
-            },
-            SpeedObserverId => currentState with
-            {
-                Speed = ReadDouble(property) is { } speed && speed > 0 ? speed : 1
-            },
+            PauseObserverId => currentState with { IsPaused = ReadFlag(property) ?? true },
+            SpeedObserverId => currentState with { Speed = ReadDouble(property) is { } speed and > 0 ? speed : 1 },
             VolumeObserverId => currentState with
             {
                 Volume = ReadDouble(property) is { } volume ? Math.Max(0, volume) : 100
@@ -331,7 +368,20 @@ public class MpvService : IDisposable
             {
                 VideoHeight = ReadLong(property) is { } height ? Math.Max(0, height) : 0
             },
-            _ => currentState
+            TrackListObserverId => currentState with
+            {
+                Tracks = PrepareTracks(currentState.Tracks, MpvTrackListParser.Parse(property),
+                                       currentState.AudioTrackId, currentState.SubtitleTrackId,
+                                       currentState.SecondarySubtitleTrackId)
+            },
+            AudioTrackObserverId    => ApplyAudioTrackSelection(currentState, ReadTrackId(property)),
+            SubtitleTrackObserverId => ApplySubtitleTrackSelection(currentState, ReadTrackId(property)),
+            SecondarySubtitleTrackObserverId =>
+                ApplySecondarySubtitleTrackSelection(currentState, ReadTrackId(property)),
+            SubtitleDelayObserverId      => currentState with { SubtitleDelay = ReadFiniteDouble(property) },
+            AudioDelayObserverId         => currentState with { AudioDelay = ReadFiniteDouble(property) },
+            SubtitleVisibilityObserverId => currentState with { AreSubtitlesVisible = ReadFlag(property) ?? true },
+            _                            => currentState
         };
 
         if (updatedState == currentState)
@@ -341,14 +391,34 @@ public class MpvService : IDisposable
 
         Volatile.Write(ref _playbackState, updatedState);
         PlaybackStateChanged?.Invoke(
-            this,
-            new MpvPlaybackStateChangedEventArgs(currentState, updatedState));
+                                     this,
+                                     new MpvPlaybackStateChangedEventArgs(currentState, updatedState));
+    }
+
+    private void ResetTracksForNewMedia()
+    {
+        var currentState = Volatile.Read(ref _playbackState);
+        if (currentState.Tracks.IsEmpty                   &&
+            currentState.AudioTrackId             == null &&
+            currentState.SubtitleTrackId          == null &&
+            currentState.SecondarySubtitleTrackId == null)
+        {
+            return;
+        }
+
+        var updatedState = currentState with
+        {
+            Tracks = [], AudioTrackId = null, SubtitleTrackId = null, SecondarySubtitleTrackId = null
+        };
+
+        Volatile.Write(ref _playbackState, updatedState);
+        PlaybackStateChanged?.Invoke(this, new MpvPlaybackStateChangedEventArgs(currentState, updatedState));
     }
 
     private void PublishPlaybackEvent(MpvEvent mpvEvent)
     {
-        MpvEndFileReason? endReason = null;
-        MpvStatus?        error = null;
+        MpvEndFileReason? endReason    = null;
+        MpvStatus?        error        = null;
         string?           errorMessage = null;
 
         if (mpvEvent.eventId == MpvEventId.EndFile && mpvEvent.data != nint.Zero)
@@ -366,36 +436,112 @@ public class MpvService : IDisposable
             }
         }
 
-        PlaybackEvent?.Invoke(
-            this,
-            new MpvPlaybackEventArgs(
-                mpvEvent.eventId,
-                PlaybackState,
-                endReason,
-                error,
-                errorMessage));
+        PlaybackEvent?.Invoke(this,
+                              new MpvPlaybackEventArgs(mpvEvent.eventId, PlaybackState, endReason, error,
+                                                       errorMessage));
     }
 
-    private static double? ReadDouble(MpvEventProperty property)
-    {
-        return property.format == MpvFormat.Double && property.data != nint.Zero
+    private static double? ReadDouble(MpvEventProperty property) =>
+        property.format == MpvFormat.Double && property.data != nint.Zero
             ? BitConverter.Int64BitsToDouble(Marshal.ReadInt64(property.data))
             : null;
+
+
+    private static bool? ReadFlag(MpvEventProperty property) =>
+        property.format == MpvFormat.Flag && property.data != nint.Zero ? Marshal.ReadInt32(property.data) != 0 : null;
+
+
+    private static long? ReadLong(MpvEventProperty property) =>
+        property.format == MpvFormat.Long && property.data != nint.Zero ? Marshal.ReadInt64(property.data) : null;
+
+
+    private static string? ReadString(MpvEventProperty property)
+    {
+        if (property.format != MpvFormat.String || property.data == nint.Zero)
+        {
+            return null;
+        }
+
+        var valuePointer = Marshal.ReadIntPtr(property.data);
+        return valuePointer == nint.Zero ? null : Marshal.PtrToStringUTF8(valuePointer);
     }
 
-    private static bool? ReadFlag(MpvEventProperty property)
+    private static long? ReadTrackId(MpvEventProperty property)
     {
-        return property.format == MpvFormat.Flag && property.data != nint.Zero
-            ? Marshal.ReadInt32(property.data) != 0
+        var value = ReadString(property);
+        return long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var trackId) && trackId > 0
+            ? trackId
             : null;
     }
 
-    private static long? ReadLong(MpvEventProperty property)
+    private static double ReadFiniteDouble(MpvEventProperty property) =>
+        ReadDouble(property) is { } value && double.IsFinite(value) ? value : 0;
+
+
+    private static MpvPlaybackState ApplyAudioTrackSelection(MpvPlaybackState state, long? trackId)
     {
-        return property.format == MpvFormat.Long && property.data != nint.Zero
-            ? Marshal.ReadInt64(property.data)
-            : null;
+        return state with
+        {
+            Tracks = PrepareTracks(state.Tracks, state.Tracks, trackId, state.SubtitleTrackId,
+                                   state.SecondarySubtitleTrackId),
+            AudioTrackId = trackId
+        };
     }
+
+    private static MpvPlaybackState ApplySubtitleTrackSelection(MpvPlaybackState state, long? trackId)
+    {
+        return state with
+        {
+            Tracks = PrepareTracks(state.Tracks, state.Tracks, state.AudioTrackId, trackId,
+                                   state.SecondarySubtitleTrackId),
+            SubtitleTrackId = trackId
+        };
+    }
+
+    private static MpvPlaybackState ApplySecondarySubtitleTrackSelection(MpvPlaybackState state, long? trackId)
+    {
+        return state with
+        {
+            Tracks = PrepareTracks(state.Tracks, state.Tracks, state.AudioTrackId, state.SubtitleTrackId, trackId),
+            SecondarySubtitleTrackId = trackId
+        };
+    }
+
+    private static ImmutableArray<MediaTrackInfo> PrepareTracks(ImmutableArray<MediaTrackInfo> currentTracks,
+                                                                ImmutableArray<MediaTrackInfo> candidateTracks,
+                                                                long? audioTrackId, long? subtitleTrackId,
+                                                                long? secondarySubtitleTrackId)
+    {
+        if (candidateTracks.IsEmpty)
+        {
+            return currentTracks.IsEmpty ? currentTracks : [];
+        }
+
+        var builder = ImmutableArray.CreateBuilder<MediaTrackInfo>(candidateTracks.Length);
+        foreach (var track in candidateTracks)
+        {
+            var isSelected = track.Type switch
+            {
+                MediaTrackType.Audio    => track.Id == audioTrackId,
+                MediaTrackType.Subtitle => track.Id == subtitleTrackId || track.Id == secondarySubtitleTrackId,
+                _                       => track.IsSelected
+            };
+            builder.Add(track.IsSelected == isSelected ? track : track with { IsSelected = isSelected });
+        }
+
+        var normalizedTracks = builder.MoveToImmutable();
+        return currentTracks.AsSpan().SequenceEqual(normalizedTracks.AsSpan()) ? currentTracks : normalizedTracks;
+    }
+
+    private MpvStatus SetTrackProperty(string propertyName, long trackId) => trackId > 0
+        ? SetProperty(propertyName, trackId.ToString(CultureInfo.InvariantCulture))
+        : MpvStatus.InvalidParameter;
+
+
+    private MpvStatus SetFiniteDoubleProperty(string propertyName, double value) => double.IsFinite(value)
+        ? SetProperty(propertyName, value)
+        : MpvStatus.InvalidParameter;
+
 
     private void HandleError(MpvStatus err, string msg)
     {

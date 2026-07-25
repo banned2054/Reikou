@@ -5,6 +5,7 @@ using Avalonia.OpenGL.Controls;
 using Avalonia.Threading;
 using Banned.Avalonia.Danmaku.Playback;
 using Microsoft.Extensions.Logging.Abstractions;
+using Reikou.Models.Enums;
 using Reikou.Services;
 using System;
 using System.Diagnostics;
@@ -129,7 +130,7 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
         if (width != _lastFramebufferWidth || height != _lastFramebufferHeight)
         {
             _framebufferSizeChangeCount++;
-            _lastFramebufferWidth = width;
+            _lastFramebufferWidth  = width;
             _lastFramebufferHeight = height;
         }
 
@@ -138,10 +139,10 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
             return;
         }
 
-        var renderMilliseconds = _renderElapsedTicks                               * 1000.0 / Stopwatch.Frequency;
+        var renderMilliseconds  = _renderElapsedTicks                               * 1000.0 / Stopwatch.Frequency;
         var averageMilliseconds = _renderedFrameCount == 0 ? 0 : renderMilliseconds / _renderedFrameCount;
-        var updateCallbacks = Interlocked.Exchange(ref _renderUpdateCallbackCount, 0);
-        var coalescedRequests = Interlocked.Exchange(ref _coalescedFrameRequestCount, 0);
+        var updateCallbacks     = Interlocked.Exchange(ref _renderUpdateCallbackCount, 0);
+        var coalescedRequests   = Interlocked.Exchange(ref _coalescedFrameRequestCount, 0);
         Debug.WriteLine(
                         $"[MpvRender] frames={_renderedFrameCount}; total={renderMilliseconds:0.00}ms; " +
                         $"avg={averageMilliseconds:0.00}ms; fbo={width}x{height}; "                      +
@@ -149,9 +150,9 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
                         $"coalesced={coalescedRequests}"
                        );
 
-        _renderSampleStarted = now;
-        _renderElapsedTicks = 0;
-        _renderedFrameCount = 0;
+        _renderSampleStarted        = now;
+        _renderElapsedTicks         = 0;
+        _renderedFrameCount         = 0;
         _framebufferSizeChangeCount = 0;
     }
 #endif
@@ -201,6 +202,34 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
 
     public void TogglePause() => _mpvService?.Command("cycle", "pause");
 
+    public MpvStatus SelectAudioTrack(long trackId) =>
+        _mpvService?.SelectAudioTrack(trackId) ?? MpvStatus.Uninitialized;
+
+    public MpvStatus DisableAudioTrack() => _mpvService?.DisableAudioTrack() ?? MpvStatus.Uninitialized;
+
+    public MpvStatus SelectSubtitleTrack(long trackId) =>
+        _mpvService?.SelectSubtitleTrack(trackId) ?? MpvStatus.Uninitialized;
+
+    public MpvStatus DisableSubtitleTrack() => _mpvService?.DisableSubtitleTrack() ?? MpvStatus.Uninitialized;
+
+    public MpvStatus SelectSecondarySubtitleTrack(long trackId) =>
+        _mpvService?.SelectSecondarySubtitleTrack(trackId) ?? MpvStatus.Uninitialized;
+
+    public MpvStatus DisableSecondarySubtitleTrack() =>
+        _mpvService?.DisableSecondarySubtitleTrack() ?? MpvStatus.Uninitialized;
+
+    public MpvStatus SetSubtitleVisibility(bool isVisible) =>
+        _mpvService?.SetSubtitleVisibility(isVisible) ?? MpvStatus.Uninitialized;
+
+    public MpvStatus SetSubtitleDelay(double seconds) =>
+        _mpvService?.SetSubtitleDelay(seconds) ?? MpvStatus.Uninitialized;
+
+    public MpvStatus ResetSubtitleDelay() => _mpvService?.ResetSubtitleDelay() ?? MpvStatus.Uninitialized;
+
+    public MpvStatus SetAudioDelay(double seconds) => _mpvService?.SetAudioDelay(seconds) ?? MpvStatus.Uninitialized;
+
+    public MpvStatus ResetAudioDelay() => _mpvService?.ResetAudioDelay() ?? MpvStatus.Uninitialized;
+
     public void BeginSeek(double seconds)
     {
         if (double.IsFinite(seconds))
@@ -209,8 +238,7 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
         }
     }
 
-    public void Seek(double seconds) =>
-        ExecuteSeek(Math.Max(0, seconds), Math.Max(0, seconds), "absolute");
+    public void Seek(double seconds) => ExecuteSeek(Math.Max(0, seconds), Math.Max(0, seconds), "absolute");
 
     public void SeekFast(double seconds) =>
         ExecuteSeek(Math.Max(0, seconds), Math.Max(0, seconds), "absolute+keyframes");
@@ -239,8 +267,8 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
 
     private void ExecuteSeek(double requestedSeconds, double commandSeconds, string mode)
     {
-        if (_mpvService == null              ||
-            _playbackSession == null         ||
+        if (_mpvService      == null           ||
+            _playbackSession == null           ||
             !double.IsFinite(requestedSeconds) ||
             !double.IsFinite(commandSeconds))
         {
@@ -249,10 +277,7 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
 
         var requestedPosition = TimeSpan.FromSeconds(Math.Max(0, requestedSeconds));
         _playbackSession.BeginSeek(requestedPosition);
-        var status = _mpvService.Command(
-            "seek",
-            commandSeconds.ToString("R", CultureInfo.InvariantCulture),
-            mode);
+        var status = _mpvService.Command("seek", commandSeconds.ToString("R", CultureInfo.InvariantCulture), mode);
         if ((int)status < 0)
         {
             _playbackSession.CancelSeek();
