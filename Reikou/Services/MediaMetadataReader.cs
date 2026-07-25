@@ -42,8 +42,7 @@ public static class MediaMetadataReader
             if (LibMpv.Initialize(handle) < 0)
                 return null;
 
-            var safePath = EscapeMpvCommandArgument(filePath.Replace("\\", "/"));
-            if (LibMpv.CommandString(handle, $"loadfile \"{safePath}\" replace") < 0)
+            if (LibMpv.Command(handle, "loadfile", filePath, "replace") < 0)
                 return null;
 
             var deadline = DateTime.UtcNow + timeout;
@@ -85,10 +84,5 @@ public static class MediaMetadataReader
             return null;
 
         return duration;
-    }
-
-    private static string EscapeMpvCommandArgument(string value)
-    {
-        return value.Replace("\"", "\\\"");
     }
 }

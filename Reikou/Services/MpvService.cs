@@ -144,12 +144,12 @@ public class MpvService : IDisposable
         }
     }
 
-    public MpvStatus Command(string command)
+    public MpvStatus Command(params string[] arguments)
     {
         if (_disposed) return MpvStatus.Uninitialized;
-        var err = LibMpv.CommandString(_handle, command);
+        var err = LibMpv.Command(_handle, arguments);
         if (err < 0)
-            HandleError(err, $"Command failed: {command}");
+            HandleError(err, $"Command failed: {string.Join(" | ", arguments)}");
         return err;
     }
 

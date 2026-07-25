@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Reikou.Views.Controls;

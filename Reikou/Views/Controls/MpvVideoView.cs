@@ -7,6 +7,8 @@ using Banned.Avalonia.Danmaku.Playback;
 using Microsoft.Extensions.Logging.Abstractions;
 using Reikou.Services;
 using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -169,9 +171,8 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
             return;
         }
 
-        var safeUrl = url.Replace("\\", "/");
         _playbackSession.OpenMedia(url);
-        var status = _mpvService.Command($"loadfile \"{safeUrl}\" replace");
+        var status = _mpvService.Command("loadfile", url, "replace");
         if ((int)status < 0)
         {
             _playbackSession.FailCurrentMedia($"mpv failed to open '{url}'.");
@@ -187,8 +188,7 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
     public async Task LoadSubtitleAsync(string url)
     {
         await _glInitSignal.Task;
-        var safeUrl = url.Replace("\\", "/");
-        _mpvService?.Command($"sub-add \"{safeUrl}\" select");
+        _mpvService?.Command("sub-add", url, "select");
     }
 
     public void TakeScreenshot(string path)
@@ -196,31 +196,35 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
         if (string.IsNullOrWhiteSpace(path))
             return;
 
-        var safePath = path.Replace("\\", "/");
-        _mpvService?.Command($"screenshot-to-file \"{safePath}\" window");
+        _mpvService?.Command("screenshot-to-file", path, "window");
     }
 
-    public void TogglePause() => _mpvService?.Command("cycle pause");
+    public void TogglePause() => _mpvService?.Command("cycle", "pause");
 
-    public void BeginSeek(double seconds) =>
-        _playbackSession?.BeginSeek(TimeSpan.FromSeconds(Math.Max(0, seconds)));
+    public void BeginSeek(double seconds)
+    {
+        if (double.IsFinite(seconds))
+        {
+            _playbackSession?.BeginSeek(TimeSpan.FromSeconds(Math.Max(0, seconds)));
+        }
+    }
 
     public void Seek(double seconds) =>
-        ExecuteSeek(seconds, $"seek {seconds} absolute");
+        ExecuteSeek(Math.Max(0, seconds), Math.Max(0, seconds), "absolute");
 
     public void SeekFast(double seconds) =>
-        ExecuteSeek(seconds, $"seek {seconds} absolute+keyframes");
+        ExecuteSeek(Math.Max(0, seconds), Math.Max(0, seconds), "absolute+keyframes");
 
     public void SeekRelative(double seconds)
     {
         var target = PlaybackState.Position + seconds;
-        ExecuteSeek(target, $"seek {seconds} relative");
+        ExecuteSeek(target, seconds, "relative");
     }
 
     public void SeekRelativeFast(double seconds)
     {
         var target = PlaybackState.Position + seconds;
-        ExecuteSeek(target, $"seek {seconds} relative+keyframes");
+        ExecuteSeek(target, seconds, "relative+keyframes");
     }
 
     public void Stop(bool clearMedia = false)
@@ -233,16 +237,22 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
         _mpvService?.Command("stop");
     }
 
-    private void ExecuteSeek(double requestedSeconds, string command)
+    private void ExecuteSeek(double requestedSeconds, double commandSeconds, string mode)
     {
-        if (_mpvService == null || _playbackSession == null)
+        if (_mpvService == null              ||
+            _playbackSession == null         ||
+            !double.IsFinite(requestedSeconds) ||
+            !double.IsFinite(commandSeconds))
         {
             return;
         }
 
         var requestedPosition = TimeSpan.FromSeconds(Math.Max(0, requestedSeconds));
         _playbackSession.BeginSeek(requestedPosition);
-        var status = _mpvService.Command(command);
+        var status = _mpvService.Command(
+            "seek",
+            commandSeconds.ToString("R", CultureInfo.InvariantCulture),
+            mode);
         if ((int)status < 0)
         {
             _playbackSession.CancelSeek();

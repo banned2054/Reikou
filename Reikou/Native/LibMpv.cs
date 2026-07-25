@@ -26,9 +26,6 @@ public static partial class LibMpv
     [LibraryImport(MpvLibraryName, EntryPoint = "mpv_command")]
     private static partial MpvStatus MpvCommand(nint mpvHandle, nint strings);
 
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_command_string", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial MpvStatus MpvCommandString(nint mpvHandle, string command);
-
     [LibraryImport(MpvLibraryName, EntryPoint = "mpv_command_ret")]
     private static partial MpvStatus MpvCommandRet(nint mpvHandle, nint strings, nint node);
 
@@ -131,8 +128,18 @@ public static partial class LibMpv
     public static nint      CreateClient(nint  mpvHandle, string command) => MpvCreateClient(mpvHandle, command);
     public static MpvStatus Initialize(nint    mpvHandle)                 => MpvInitialize(mpvHandle);
     public static void      Destroy(nint       mpvHandle)                 => MpvDestroy(mpvHandle);
-    public static MpvStatus Command(nint       mpvHandle, nint   strings) => MpvCommand(mpvHandle, strings);
-    public static MpvStatus CommandString(nint mpvHandle, string command) => MpvCommandString(mpvHandle, command);
+
+    public static MpvStatus Command(nint mpvHandle, params string[] arguments)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+        if (arguments.Length == 0)
+        {
+            return MpvStatus.InvalidParameter;
+        }
+
+        using var nativeArguments = new Utf8StringArray(arguments);
+        return MpvCommand(mpvHandle, nativeArguments.Pointer);
+    }
 
     public static MpvStatus CommandRet(nint mpvHandle, nint strings, nint node) =>
         MpvCommandRet(mpvHandle, strings, node);
@@ -227,4 +234,60 @@ public static partial class LibMpv
 
     public static string GetError(MpvStatus  err) => ConvertFromUtf8(ErrorString(err));
     public static byte[] GetUtf8Bytes(string s)   => Encoding.UTF8.GetBytes(s + "\0");
+
+    private sealed class Utf8StringArray : IDisposable
+    {
+        private readonly nint[] _strings;
+        private nint            _pointer;
+
+        public Utf8StringArray(string[] arguments)
+        {
+            for (var i = 0; i < arguments.Length; i++)
+            {
+                ArgumentNullException.ThrowIfNull(arguments[i]);
+                if (arguments[i].Contains('\0'))
+                {
+                    throw new ArgumentException("mpv command arguments cannot contain NUL characters.", nameof(arguments));
+                }
+            }
+
+            _strings = new nint[arguments.Length];
+            _pointer = Marshal.AllocHGlobal(checked((arguments.Length + 1) * nint.Size));
+
+            try
+            {
+                for (var i = 0; i < arguments.Length; i++)
+                {
+                    _strings[i] = Marshal.StringToCoTaskMemUTF8(arguments[i]);
+                    Marshal.WriteIntPtr(_pointer, i * nint.Size, _strings[i]);
+                }
+
+                Marshal.WriteIntPtr(_pointer, arguments.Length * nint.Size, nint.Zero);
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
+        }
+
+        public nint Pointer => _pointer;
+
+        public void Dispose()
+        {
+            foreach (var pointer in _strings)
+            {
+                if (pointer != nint.Zero)
+                {
+                    Marshal.FreeCoTaskMem(pointer);
+                }
+            }
+
+            if (_pointer != nint.Zero)
+            {
+                Marshal.FreeHGlobal(_pointer);
+                _pointer = nint.Zero;
+            }
+        }
+    }
 }
