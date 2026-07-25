@@ -32,6 +32,10 @@
 		<PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.0" />
 		<PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
 		<PackageReference Include="Banned.Avalonia.Danmaku" Version="0.3.0" />
+		<PackageReference Include="MediaInfo.Native" Version="26.1.0"
+		                  Condition="$([MSBuild]::IsOSPlatform('Windows'))"
+		                  ExcludeAssets="build"
+		                  GeneratePathProperty="true" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
 		<PackageReference Include="Serilog" Version="4.4.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
@@ -46,5 +50,12 @@
 		<None Update="Libs\**\*.dll;Libs\**\*.so;Libs\**\*.dylib">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+	</ItemGroup>
+	<ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+		<None Include="$(PkgMediaInfo_Native)\build\native\x64\*.dll"
+		      Link="%(Filename)%(Extension)"
+		      CopyToOutputDirectory="PreserveNewest"
+		      CopyToPublishDirectory="PreserveNewest"
+		      Visible="false" />
 	</ItemGroup>
 </Project>
