@@ -320,11 +320,9 @@ public partial class MainWindow : Window
             var now = Stopwatch.GetTimestamp();
             if (now - _lastDanmakuDiagnosticTimestamp >= Stopwatch.Frequency)
             {
-                Debug.WriteLine(
-                                $"[Danmaku] source items={DanmakuLayer.DanmakuCount}; "                        +
-                                $"loading={DanmakuLayer.IsLoading}; "                                         +
-                                $"viewport={DanmakuLayer.Bounds.Width:0.#}x{DanmakuLayer.Bounds.Height:0.#}"
-                               );
+                Debug.WriteLine($"[Danmaku] source items={DanmakuLayer.DanmakuCount}; " +
+                                $"loading={DanmakuLayer.IsLoading}; "                   +
+                                $"viewport={DanmakuLayer.Bounds.Width:0.#}x{DanmakuLayer.Bounds.Height:0.#}");
                 _lastDanmakuDiagnosticTimestamp = now;
             }
 #endif
@@ -737,15 +735,12 @@ public partial class MainWindow : Window
 
     private void TakeScreenshot()
     {
-        var screenshotDirectory = Path.Combine(
-                                               Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-                                               "TestMpv");
+        var screenshotDirectory =
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "TestMpv");
 
         Directory.CreateDirectory(screenshotDirectory);
 
-        var screenshotPath = Path.Combine(
-                                          screenshotDirectory,
-                                          $"screenshot-{DateTime.Now:yyyyMMdd-HHmmss}.png");
+        var screenshotPath = Path.Combine(screenshotDirectory, $"screenshot-{DateTime.Now:yyyyMMdd-HHmmss}.png");
 
         Player.TakeScreenshot(screenshotPath);
     }
@@ -774,23 +769,18 @@ public partial class MainWindow : Window
             return;
         }
 
-        var layers = configuredLayers.Split(
-                                            ',',
-                                            StringSplitOptions.RemoveEmptyEntries |
-                                            StringSplitOptions.TrimEntries
-                                           );
+        var layers =
+            configuredLayers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         static bool Contains(string[] values, string layer) =>
             values.Any(value => string.Equals(value, layer, StringComparison.OrdinalIgnoreCase));
 
-        Player.IsVisible = Contains(layers, "video");
-        DanmakuLayer.IsVisible = Contains(layers, "danmaku");
+        Player.IsVisible          = Contains(layers, "video");
+        DanmakuLayer.IsVisible    = Contains(layers, "danmaku");
         OverlayControls.IsVisible = Contains(layers, "overlay");
 
-        Debug.WriteLine(
-                        $"[ResizeLayers] video={Player.IsVisible}; danmaku={DanmakuLayer.IsVisible}; " +
-                        $"overlay={OverlayControls.IsVisible}"
-                       );
+        Debug.WriteLine($"[ResizeLayers] video={Player.IsVisible}; danmaku={DanmakuLayer.IsVisible}; " +
+                        $"overlay={OverlayControls.IsVisible}");
     }
 #endif
 

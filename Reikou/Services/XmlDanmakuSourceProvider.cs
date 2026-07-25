@@ -11,19 +11,16 @@ namespace Reikou.Services;
 
 internal sealed class XmlDanmakuSourceProvider : IDanmakuSourceProvider
 {
-    private readonly object                     _gate = new();
+    private readonly Lock                       _gate = new();
     private readonly Dictionary<string, string> _sourcePaths;
 
     private string? _pendingSourcePath;
 
-    public XmlDanmakuSourceProvider()
-        : this([], pendingSourcePath : null)
+    public XmlDanmakuSourceProvider() : this([], pendingSourcePath : null)
     {
     }
 
-    private XmlDanmakuSourceProvider(
-        Dictionary<string, string> sourcePaths,
-        string?                    pendingSourcePath)
+    private XmlDanmakuSourceProvider(Dictionary<string, string> sourcePaths, string? pendingSourcePath)
     {
         _sourcePaths       = sourcePaths;
         _pendingSourcePath = pendingSourcePath;
@@ -52,9 +49,7 @@ internal sealed class XmlDanmakuSourceProvider : IDanmakuSourceProvider
         }
     }
 
-    public async ValueTask<DanmakuDocument?> LoadAsync(
-        PlaybackMediaId mediaId,
-        CancellationToken cancellationToken)
+    public async ValueTask<DanmakuDocument?> LoadAsync(PlaybackMediaId mediaId, CancellationToken cancellationToken)
     {
         string? sourcePath;
 
@@ -63,9 +58,9 @@ internal sealed class XmlDanmakuSourceProvider : IDanmakuSourceProvider
             if (!_sourcePaths.TryGetValue(mediaId.Value, out sourcePath) &&
                 _pendingSourcePath != null)
             {
-                sourcePath = _pendingSourcePath;
+                sourcePath                  = _pendingSourcePath;
                 _sourcePaths[mediaId.Value] = sourcePath;
-                _pendingSourcePath = null;
+                _pendingSourcePath          = null;
             }
         }
 
@@ -75,9 +70,7 @@ internal sealed class XmlDanmakuSourceProvider : IDanmakuSourceProvider
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var document = await Task.Run(
-            () => BilibiliXmlDanmakuParser.ParseFile(sourcePath),
-            cancellationToken);
+        var document = await Task.Run(() => BilibiliXmlDanmakuParser.ParseFile(sourcePath), cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return document;
     }

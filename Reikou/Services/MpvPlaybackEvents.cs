@@ -3,20 +3,19 @@ using System;
 
 namespace Reikou.Services;
 
-public sealed class MpvPlaybackStateChangedEventArgs(
-    MpvPlaybackState previousState,
-    MpvPlaybackState currentState) : EventArgs
+public sealed class MpvPlaybackStateChangedEventArgs(MpvPlaybackState previousState, MpvPlaybackState currentState)
+    : EventArgs
 {
     public MpvPlaybackState PreviousState { get; } = previousState;
     public MpvPlaybackState CurrentState  { get; } = currentState;
 }
 
 public sealed class MpvPlaybackEventArgs(
-    MpvEventId         eventId,
-    MpvPlaybackState   state,
-    MpvEndFileReason?  endReason   = null,
-    MpvStatus?         error        = null,
-    string?            errorMessage = null) : EventArgs
+    MpvEventId        eventId,
+    MpvPlaybackState  state,
+    MpvEndFileReason? endReason    = null,
+    MpvStatus?        error        = null,
+    string?           errorMessage = null) : EventArgs
 {
     public MpvEventId        EventId      { get; } = eventId;
     public MpvPlaybackState  State        { get; } = state;
