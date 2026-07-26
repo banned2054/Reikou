@@ -75,6 +75,15 @@ public class VideoTransportControls : TemplatedControl
         set => SetValue(VolumeProperty, value);
     }
 
+    public static readonly StyledProperty<double> MaximumVolumeProperty =
+        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(MaximumVolume), 130.0);
+
+    public double MaximumVolume
+    {
+        get => GetValue(MaximumVolumeProperty);
+        set => SetValue(MaximumVolumeProperty, value);
+    }
+
     public static readonly StyledProperty<bool> IsMutedProperty =
         AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsMuted));
 

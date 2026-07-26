@@ -10,6 +10,9 @@
         x:Class="Reikou.Views.Pages.MainWindow"
         x:DataType="viewModels:MainWindowViewModel"
         Title="Reikou"
+        MinWidth="760"
+        MinHeight="600"
+        ClosingBehavior="OwnerAndChildWindows"
         DragDrop.AllowDrop="True">
 
     <Window.Styles>
@@ -34,7 +37,7 @@
         </Style>
     </Window.Styles>
 
-    <Panel Background="Black">
+    <Panel x:Name="PlayerSurface" Background="Black">
         <controls:LiveResizeViewportHost x:Name="LiveResizeViewport"
                                          ResizeEndDelay="0:0:0.16">
             <Panel>
@@ -60,6 +63,7 @@
                                         PlaybackSpeed="{Binding PlaybackSpeed}"
                                         PlaybackSpeedText="{Binding PlaybackSpeedText}"
                                         Volume="{Binding Volume, Mode=TwoWay}"
+                                        MaximumVolume="{Binding MaximumVolume}"
                                         IsMuted="{Binding IsMuted}"
                                         IsFullscreen="{Binding IsFullscreen}"
                                         PlayPauseCommand="{Binding PlayPauseCommand}"
@@ -71,6 +75,7 @@
                                         ToggleDanmakuCommand="{Binding ToggleDanmakuCommand}"
                                         ChangeSpeedCommand="{Binding ChangeSpeedCommand}"
                                         TakeScreenshotCommand="{Binding TakeScreenshotCommand}"
+                                        OpenSettingsCommand="{Binding OpenSettingsCommand}"
                                         AddPlaylistItemCommand="{Binding AddPlaylistItemCommand}"
                                         RemovePlaylistItemCommand="{Binding RemovePlaylistItemCommand}"
                                         SelectPlaylistItemCommand="{Binding SelectPlaylistItemCommand}"

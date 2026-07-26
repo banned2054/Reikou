@@ -1,0 +1,18 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:viewModels="clr-namespace:Reikou.ViewModels"
+        xmlns:components="clr-namespace:Reikou.Views.Components"
+        x:Class="Reikou.Views.Pages.SettingsWindow"
+        x:DataType="viewModels:SettingsViewModel"
+        Title="Reikou 设置"
+        Width="1120"
+        Height="760"
+        MinWidth="820"
+        MinHeight="520"
+        CanResize="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#FA18191C"
+        KeyDown="OnKeyDown">
+    <components:SettingsPanel />
+</Window>

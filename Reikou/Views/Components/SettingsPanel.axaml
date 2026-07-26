@@ -1,0 +1,307 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:Reikou.ViewModels"
+             x:Class="Reikou.Views.Components.SettingsPanel"
+             x:DataType="viewModels:SettingsViewModel">
+    <UserControl.Styles>
+        <Style Selector="Border.SettingRow">
+            <Setter Property="Padding" Value="0,16" />
+            <Setter Property="BorderBrush" Value="#14FFFFFF" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+        </Style>
+        <Style Selector="TextBlock.SettingTitle">
+            <Setter Property="Foreground" Value="#F2FFFFFF" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.SettingDescription">
+            <Setter Property="Foreground" Value="#8FFFFFFF" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MaxWidth" Value="440" />
+        </Style>
+        <Style Selector="TextBlock.RestartMark">
+            <Setter Property="Foreground" Value="#F5B942" />
+            <Setter Property="FontSize" Value="11" />
+        </Style>
+        <Style Selector="ListBox.SettingsNavigation">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="ListBox.SettingsNavigation ListBoxItem">
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Margin" Value="8,2" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="ListBox.SettingsNavigation ListBoxItem:selected">
+            <Setter Property="Background" Value="#24FFFFFF" />
+        </Style>
+        <Style Selector="ListBox.SettingsNavigation ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#16FFFFFF" />
+        </Style>
+        <Style Selector="ComboBox.SettingControl">
+            <Setter Property="MinWidth" Value="230" />
+            <Setter Property="MaxWidth" Value="300" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="TextBox.SettingControl">
+            <Setter Property="MinWidth" Value="230" />
+            <Setter Property="MaxWidth" Value="380" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
+    </UserControl.Styles>
+
+    <UserControl.DataTemplates>
+        <DataTemplate DataType="{x:Type viewModels:ToggleSettingViewModel}"
+                      x:DataType="viewModels:ToggleSettingViewModel">
+            <Border Classes="SettingRow">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="28">
+                    <StackPanel Spacing="5">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
+                            <TextBlock Classes="RestartMark"
+                                       Text="重启生效"
+                                       IsVisible="{Binding RestartRequired}" />
+                        </StackPanel>
+                        <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="1"
+                                  IsChecked="{Binding Value, Mode=TwoWay}"
+                                  VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type viewModels:ChoiceSettingViewModel}"
+                      x:DataType="viewModels:ChoiceSettingViewModel">
+            <Border Classes="SettingRow">
+                <Grid ColumnDefinitions="*,260" ColumnSpacing="24">
+                    <StackPanel Spacing="5" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
+                            <TextBlock Classes="RestartMark"
+                                       Text="重启生效"
+                                       IsVisible="{Binding RestartRequired}" />
+                        </StackPanel>
+                        <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
+                    </StackPanel>
+                    <ComboBox Grid.Column="1"
+                              Classes="SettingControl"
+                              ItemsSource="{Binding Choices}"
+                              SelectedItem="{Binding SelectedChoice, Mode=TwoWay}"
+                              VerticalAlignment="Center">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:SettingChoice">
+                                <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type viewModels:NumberSettingViewModel}"
+                      x:DataType="viewModels:NumberSettingViewModel">
+            <Border Classes="SettingRow">
+                <Grid ColumnDefinitions="*,260" ColumnSpacing="24">
+                    <StackPanel Spacing="5" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
+                            <TextBlock Classes="RestartMark"
+                                       Text="重启生效"
+                                       IsVisible="{Binding RestartRequired}" />
+                        </StackPanel>
+                        <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
+                    </StackPanel>
+                    <Grid Grid.Column="1" ColumnDefinitions="*,96,Auto" ColumnSpacing="10">
+                        <Slider Minimum="{Binding Minimum}"
+                                Maximum="{Binding Maximum}"
+                                TickFrequency="{Binding Increment}"
+                                Value="{Binding SliderValue, Mode=TwoWay}"
+                                VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Column="1"
+                                       Minimum="{Binding Minimum}"
+                                       Maximum="{Binding Maximum}"
+                                       Increment="{Binding Increment}"
+                                       Value="{Binding NumericValue, Mode=TwoWay}"
+                                       FormatString="0.####"
+                                       HorizontalContentAlignment="Right" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Suffix}"
+                                   Foreground="#8FFFFFFF"
+                                   MinWidth="28"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type viewModels:PathSettingViewModel}"
+                      x:DataType="viewModels:PathSettingViewModel">
+            <Border Classes="SettingRow">
+                <Grid ColumnDefinitions="*,300" ColumnSpacing="24">
+                    <StackPanel Spacing="5" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
+                            <TextBlock Classes="RestartMark"
+                                       Text="重启生效"
+                                       IsVisible="{Binding RestartRequired}" />
+                        </StackPanel>
+                        <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
+                    </StackPanel>
+                    <Grid Grid.Column="1" ColumnDefinitions="*,36" ColumnSpacing="8">
+                        <TextBox Classes="SettingControl"
+                                 Text="{Binding Value, Mode=TwoWay}"
+                                 VerticalContentAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Width="36"
+                                Height="32"
+                                Padding="7"
+                                Click="BrowsePath"
+                                CommandParameter="{Binding}"
+                                ToolTip.Tip="选择路径">
+                            <Svg Path="avares://Reikou/Assets/ico-folder.svg"
+                                 Width="18"
+                                 Height="18"
+                                 Stretch="Uniform" />
+                        </Button>
+                    </Grid>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type viewModels:TextSettingViewModel}"
+                      x:DataType="viewModels:TextSettingViewModel">
+            <Border Classes="SettingRow">
+                <Grid ColumnDefinitions="*,300" ColumnSpacing="24">
+                    <StackPanel Spacing="5" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
+                            <TextBlock Classes="RestartMark"
+                                       Text="重启生效"
+                                       IsVisible="{Binding RestartRequired}" />
+                        </StackPanel>
+                        <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
+                    </StackPanel>
+                    <TextBox Grid.Column="1"
+                             Classes="SettingControl"
+                             Text="{Binding Value, Mode=TwoWay}"
+                             VerticalContentAlignment="Center" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type viewModels:ReadOnlySettingViewModel}"
+                      x:DataType="viewModels:ReadOnlySettingViewModel">
+            <Border Classes="SettingRow">
+                <Grid ColumnDefinitions="*,260" ColumnSpacing="24">
+                    <StackPanel Spacing="5">
+                        <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
+                        <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Value}"
+                               Foreground="#AFFFFFFF"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.DataTemplates>
+
+    <Border Background="#FA18191C">
+            <Grid ColumnDefinitions="184,*" RowDefinitions="72,*">
+                <Border Grid.RowSpan="2"
+                        Background="#FF111215"
+                        BorderBrush="#18FFFFFF"
+                        BorderThickness="0,0,1,0"
+                        CornerRadius="8,0,0,8">
+                    <Grid RowDefinitions="72,*">
+                        <TextBlock Text="Reikou 设置"
+                                   Margin="22,0"
+                                   Foreground="#F2FFFFFF"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <ListBox Grid.Row="1"
+                                 Classes="SettingsNavigation"
+                                 ItemsSource="{Binding Categories}"
+                                 SelectedItem="{Binding SelectedCategory, Mode=TwoWay}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="viewModels:SettingsCategoryViewModel">
+                                    <TextBlock Text="{Binding Title}"
+                                               Foreground="#D9FFFFFF"
+                                               FontSize="14"
+                                               VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="1"
+                        BorderBrush="#18FFFFFF"
+                        BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,320,Auto" ColumnSpacing="16" Margin="28,0,20,0">
+                        <TextBlock Text="{Binding ContentTitle}"
+                                   Foreground="#F2FFFFFF"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <Grid Grid.Column="1" VerticalAlignment="Center">
+                            <TextBox Text="{Binding SearchText, Mode=TwoWay}"
+                                     PlaceholderText="搜索设置"
+                                     Padding="36,8,10,8" />
+                            <Svg Path="avares://Reikou/Assets/ico-search.svg"
+                                 Width="17"
+                                 Height="17"
+                                 Margin="11,0,0,0"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Center"
+                                 IsHitTestVisible="False" />
+                        </Grid>
+                        <Button Grid.Column="2"
+                                Command="{Binding CloseCommand}"
+                                Classes="IconButton"
+                                Width="36"
+                                Height="36"
+                                Padding="0"
+                                ToolTip.Tip="关闭设置">
+                            <TextBlock Text="×"
+                                       FontSize="24"
+                                       Foreground="#D9FFFFFF"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Column="1" Grid.Row="1" RowDefinitions="Auto,Auto,*">
+                    <TextBlock Text="{Binding ContentDescription}"
+                               Margin="28,20,28,0"
+                               Foreground="#8FFFFFFF"
+                               FontSize="12" />
+                    <Border Grid.Row="1"
+                            Margin="28,14,28,0"
+                            Padding="12,9"
+                            Background="#29F5B942"
+                            BorderBrush="#55F5B942"
+                            BorderThickness="1"
+                            CornerRadius="5"
+                            IsVisible="{Binding IsRestartRequired}">
+                        <TextBlock Text="部分初始化设置已更改，将在重新启动 Reikou 后生效。"
+                                   Foreground="#FFF0C96B"
+                                   FontSize="12" />
+                    </Border>
+                    <ScrollViewer Grid.Row="2"
+                                  Margin="28,8,20,20"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding VisibleOptions}" />
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
+    </Border>
+</UserControl>

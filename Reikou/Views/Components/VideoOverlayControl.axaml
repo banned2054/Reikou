@@ -114,8 +114,8 @@
                                                                 <Button.ContextMenu>
                                                                     <ContextMenu>
                                                                         <MenuItem Header="删除"
-                                                                                  Command="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                                                  CommandParameter="{Binding}" />
+                                                                                Command="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                                CommandParameter="{Binding}" />
                                                                     </ContextMenu>
                                                                 </Button.ContextMenu>
                                                                 <ToolTip.Tip>
@@ -177,6 +177,7 @@
                                                            PlaybackSpeed="{Binding PlaybackSpeed, RelativeSource={RelativeSource TemplatedParent}}"
                                                            PlaybackSpeedText="{Binding PlaybackSpeedText, RelativeSource={RelativeSource TemplatedParent}}"
                                                            Volume="{Binding Volume, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                           MaximumVolume="{Binding MaximumVolume, RelativeSource={RelativeSource TemplatedParent}}"
                                                            IsMuted="{Binding IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
                                                            IsVolumeFlyoutOpen="{Binding IsVolumeFlyoutOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                                            IsPointerOverFlyout="{Binding IsPointerOverFlyout, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
@@ -203,6 +204,7 @@
                             Classes="IconButton"
                             Width="40"
                             Height="40">
+                            <ToolTip.Tip>截图</ToolTip.Tip>
                             <Svg Path="avares://Reikou/Assets/ico-screenshot.svg"
                                  Width="22"
                                  Height="22"

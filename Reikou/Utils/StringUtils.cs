@@ -13,6 +13,9 @@ public static class StringUtils
     public static IReadOnlyList<string> VideoFilePickerPatterns { get; } =
         Array.ConvertAll(VideoExtensions, extension => $"*{extension}");
 
+    public static IReadOnlyList<string> SubtitleFilePickerPatterns { get; } =
+        Array.ConvertAll(SubtitleExtensions, extension => $"*{extension}");
+
     public static bool IsVideoFile(string filePathOrExtension)
     {
         var extension = GetExtension(filePathOrExtension);

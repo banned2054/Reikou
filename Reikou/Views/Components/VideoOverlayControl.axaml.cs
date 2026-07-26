@@ -90,6 +90,15 @@ public class VideoOverlayControl : TemplatedControl
         set => SetValue(VolumeProperty, value);
     }
 
+    public static readonly StyledProperty<double> MaximumVolumeProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, double>(nameof(MaximumVolume), 130.0);
+
+    public double MaximumVolume
+    {
+        get => GetValue(MaximumVolumeProperty);
+        set => SetValue(MaximumVolumeProperty, value);
+    }
+
     public static readonly StyledProperty<bool> IsMutedProperty =
         AvaloniaProperty.Register<VideoOverlayControl, bool>(nameof(IsMuted));
 
@@ -228,6 +237,15 @@ public class VideoOverlayControl : TemplatedControl
     {
         get => GetValue(TakeScreenshotCommandProperty);
         set => SetValue(TakeScreenshotCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<ICommand?> OpenSettingsCommandProperty =
+        AvaloniaProperty.Register<VideoOverlayControl, ICommand?>(nameof(OpenSettingsCommand));
+
+    public ICommand? OpenSettingsCommand
+    {
+        get => GetValue(OpenSettingsCommandProperty);
+        set => SetValue(OpenSettingsCommandProperty, value);
     }
 
     public static readonly StyledProperty<ICommand?> SelectPlaylistItemCommandProperty =

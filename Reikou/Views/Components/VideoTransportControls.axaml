@@ -104,7 +104,7 @@
                                                     HorizontalAlignment="Center"
                                                     VerticalAlignment="Center"
                                                     Minimum="0"
-                                                    Maximum="200"
+                                                    Maximum="{Binding MaximumVolume, RelativeSource={RelativeSource TemplatedParent}}"
                                                     Value="{Binding Volume, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
                                                 <Slider.RenderTransform>
                                                     <TranslateTransform X="-2" />

@@ -1,3 +1,4 @@
+using Reikou.Models.Settings;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,6 +13,7 @@ internal class MainWindowViewModel : INotifyPropertyChanged
     private double _duration;
     private double _playbackSpeed      = 1.0;
     private double _volume             = 100.0;
+    private double _maximumVolume      = 130.0;
     private double _longPressJumpSpeed = 0.5;
     private double _lastUiUpdateTime;
     private double _lastTimeTextCurrent;
@@ -26,6 +28,16 @@ internal class MainWindowViewModel : INotifyPropertyChanged
 
     // --- ViewModels ---
     public PlaylistViewModel Playlist { get; } = new();
+    public SettingsViewModel Settings { get; }
+
+    public MainWindowViewModel(AppSettings settings)
+    {
+        var normalized = settings.Normalize();
+        _volume        = normalized.Audio.StartupVolume;
+        _maximumVolume = normalized.Audio.MaximumVolume;
+        _playbackSpeed = normalized.Playback.DefaultSpeed;
+        Settings       = new SettingsViewModel(settings);
+    }
 
     // --- Commands ---
     public ICommand PlayPauseCommand          { get; set; } = null!;
@@ -41,6 +53,7 @@ internal class MainWindowViewModel : INotifyPropertyChanged
     public ICommand AddPlaylistItemCommand    { get; set; } = null!;
     public ICommand RemovePlaylistItemCommand { get; set; } = null!;
     public ICommand SelectPlaylistItemCommand { get; set; } = null!;
+    public ICommand OpenSettingsCommand       { get; set; } = null!;
 
     public double Volume
     {
@@ -55,6 +68,12 @@ internal class MainWindowViewModel : INotifyPropertyChanged
     }
 
     public bool IsMuted => _volume == 0;
+
+    public double MaximumVolume
+    {
+        get => _maximumVolume;
+        set => SetField(ref _maximumVolume, value);
+    }
 
     public double LongPressJumpSpeed
     {
