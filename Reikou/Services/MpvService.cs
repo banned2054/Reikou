@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Reikou.Models;
 using Reikou.Models.Enums;
+using Reikou.Models.Settings;
 using Reikou.Models.Structs;
 using Reikou.Native;
 using System;
@@ -28,6 +29,7 @@ public class MpvService : IDisposable
     private const ulong SubtitleDelayObserverId          = 12;
     private const ulong AudioDelayObserverId             = 13;
     private const ulong SubtitleVisibilityObserverId     = 14;
+    private const ulong HardwareDecoderObserverId        = 15;
 
     private readonly ILogger<MpvService> _logger;
 
@@ -43,16 +45,29 @@ public class MpvService : IDisposable
     private LibMpv.MpvGetProcAddressFn? _getProcAddressDelegate;
     private LibMpv.MpvRenderUpdateFn?   _updateCallbackDelegate;
 
-    public MpvService(ILogger<MpvService> logger)
+    public MpvService(ILogger<MpvService> logger, MpvInitializationOptions? initializationOptions = null)
     {
         _logger = logger;
         _handle = LibMpv.Create();
         if (_handle == IntPtr.Zero)
             throw new InvalidOperationException("Failed to create mpv instance.");
 
-        var status = LibMpv.Initialize(_handle);
-        if (status < 0)
-            HandleError(status, "Initialize failed");
+        try
+        {
+            ApplyInitializationOptions(initializationOptions ?? MpvInitializationOptions.From(new AppSettings()));
+
+            var status = LibMpv.Initialize(_handle);
+            if (status < 0)
+            {
+                throw new InvalidOperationException($"Failed to initialize mpv: {LibMpv.GetError(status)}");
+            }
+        }
+        catch
+        {
+            LibMpv.Destroy(_handle);
+            _handle = nint.Zero;
+            throw;
+        }
 
         StartPlaybackStateObservation();
     }
@@ -262,6 +277,40 @@ public class MpvService : IDisposable
 
     public MpvStatus ResetAudioDelay() => SetAudioDelay(0);
 
+    private void ApplyInitializationOptions(MpvInitializationOptions options)
+    {
+        SetInitializationOption("config", "no");
+        SetInitializationOption("vo", "libmpv");
+        SetInitializationOption("input-default-bindings", "no");
+        SetInitializationOption("osc", "no");
+        SetInitializationOption("osd-bar", "no");
+
+        foreach (var option in MpvSettingsMapper.GetOptions(options.Settings))
+        {
+            TrySetInitializationOption(option.Key, option.Value);
+        }
+    }
+
+    private void SetInitializationOption(string name, string value)
+    {
+        var status = (MpvStatus)LibMpv.SetOptionString(_handle, name, value);
+        if (status < 0)
+        {
+            throw
+                new InvalidOperationException($"Failed to set mpv option '{name}={value}': {LibMpv.GetError(status)}");
+        }
+    }
+
+    private void TrySetInitializationOption(string name, string value)
+    {
+        var status = (MpvStatus)LibMpv.SetOptionString(_handle, name, value);
+        if (status < 0)
+        {
+            _logger.LogWarning("Ignoring unsupported mpv setting {OptionName}={OptionValue}: {Error}", name, value,
+                               LibMpv.GetError(status));
+        }
+    }
+
     private void StartPlaybackStateObservation()
     {
         ObserveProperty(DurationObserverId, "duration", MpvFormat.Double);
@@ -278,6 +327,7 @@ public class MpvService : IDisposable
         ObserveProperty(SubtitleDelayObserverId, "sub-delay", MpvFormat.Double);
         ObserveProperty(AudioDelayObserverId, "audio-delay", MpvFormat.Double);
         ObserveProperty(SubtitleVisibilityObserverId, "sub-visibility", MpvFormat.Flag);
+        ObserveProperty(HardwareDecoderObserverId, "hwdec-current", MpvFormat.String);
 
         var eventLoopCts = new CancellationTokenSource();
         _eventLoopCts  = eventLoopCts;
@@ -381,6 +431,7 @@ public class MpvService : IDisposable
             SubtitleDelayObserverId      => currentState with { SubtitleDelay = ReadFiniteDouble(property) },
             AudioDelayObserverId         => currentState with { AudioDelay = ReadFiniteDouble(property) },
             SubtitleVisibilityObserverId => currentState with { AreSubtitlesVisible = ReadFlag(property) ?? true },
+            HardwareDecoderObserverId    => currentState with { HardwareDecoder = ReadString(property) },
             _                            => currentState
         };
 
@@ -401,14 +452,16 @@ public class MpvService : IDisposable
         if (currentState.Tracks.IsEmpty                   &&
             currentState.AudioTrackId             == null &&
             currentState.SubtitleTrackId          == null &&
-            currentState.SecondarySubtitleTrackId == null)
+            currentState.SecondarySubtitleTrackId == null &&
+            currentState.HardwareDecoder          == null)
         {
             return;
         }
 
         var updatedState = currentState with
         {
-            Tracks = [], AudioTrackId = null, SubtitleTrackId = null, SecondarySubtitleTrackId = null
+            Tracks = [], AudioTrackId = null, SubtitleTrackId = null, SecondarySubtitleTrackId = null,
+            HardwareDecoder = null
         };
 
         Volatile.Write(ref _playbackState, updatedState);

@@ -6,8 +6,10 @@ using Avalonia.Threading;
 using Banned.Avalonia.Danmaku.Playback;
 using Microsoft.Extensions.Logging.Abstractions;
 using Reikou.Models.Enums;
+using Reikou.Models.Settings;
 using Reikou.Services;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
@@ -46,17 +48,12 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
 
     public MpvVideoView()
     {
-        _mpvService      = new MpvService(NullLogger<MpvService>.Instance);
+        var appSettings = AppSettingsStore.Current.Settings;
+        _mpvService      = new MpvService(NullLogger<MpvService>.Instance,
+                                          MpvInitializationOptions.From(appSettings));
         _playbackSession = new MpvPlaybackSession(_mpvService);
 
-        _mpvService.SetProperty("input-default-bindings", false);
-        _mpvService.SetProperty("osc", false);
-        _mpvService.SetProperty("osd-bar", false);
-        _mpvService.SetProperty("video-sync", "audio");
-        _mpvService.SetProperty("interpolation", false);
-        _mpvService.SetProperty("render-context-block-for-target-time", false);
-        _mpvService.SetProperty("opengl-swapinterval", 0);
-        _mpvService.SetProperty("video-latency-hacks", true);
+        ApplyRuntimeSettings(appSettings);
     }
 
     protected override void OnOpenGlInit(GlInterface gl)
@@ -229,6 +226,53 @@ public class MpvVideoView : OpenGlControlBase, IDisposable
     public MpvStatus SetAudioDelay(double seconds) => _mpvService?.SetAudioDelay(seconds) ?? MpvStatus.Uninitialized;
 
     public MpvStatus ResetAudioDelay() => _mpvService?.ResetAudioDelay() ?? MpvStatus.Uninitialized;
+
+    public void ApplyRuntimeSettings(AppSettings settings)
+    {
+        if (_mpvService == null)
+        {
+            return;
+        }
+
+        foreach (var option in MpvSettingsMapper.GetOptions(settings))
+        {
+            if (!MpvSettingsMapper.RequiresRestart(option.Key))
+            {
+                _mpvService.SetProperty(option.Key, option.Value);
+            }
+        }
+    }
+
+    public void ApplyRuntimeSettings(AppSettings previousSettings, AppSettings currentSettings)
+    {
+        if (_mpvService == null)
+        {
+            return;
+        }
+
+        var previous = new Dictionary<string, string>(MpvSettingsMapper.GetOptions(previousSettings),
+                                                      StringComparer.Ordinal);
+        var current = new Dictionary<string, string>(MpvSettingsMapper.GetOptions(currentSettings),
+                                                     StringComparer.Ordinal);
+
+        foreach (var optionName in previous.Keys)
+        {
+            if (!current.ContainsKey(optionName))
+            {
+                current[optionName] = string.Empty;
+            }
+        }
+
+        foreach (var option in current)
+        {
+            if (!MpvSettingsMapper.RequiresRestart(option.Key) &&
+                (!previous.TryGetValue(option.Key, out var previousValue) ||
+                 !string.Equals(previousValue, option.Value, StringComparison.Ordinal)))
+            {
+                _mpvService.SetProperty(option.Key, option.Value);
+            }
+        }
+    }
 
     public void BeginSeek(double seconds)
     {

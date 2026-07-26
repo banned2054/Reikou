@@ -18,7 +18,8 @@ public sealed record MpvPlaybackState(
     long?                          SecondarySubtitleTrackId,
     double                         SubtitleDelay,
     double                         AudioDelay,
-    bool                           AreSubtitlesVisible)
+    bool                           AreSubtitlesVisible,
+    string?                        HardwareDecoder)
 {
     public static MpvPlaybackState Default { get; } = new(
                                                           Duration : 0,
@@ -34,7 +35,8 @@ public sealed record MpvPlaybackState(
                                                           SecondarySubtitleTrackId : null,
                                                           SubtitleDelay : 0,
                                                           AudioDelay : 0,
-                                                          AreSubtitlesVisible : true
+                                                          AreSubtitlesVisible : true,
+                                                          HardwareDecoder : null
                                                          );
 
     public double VideoAspectRatio => VideoWidth > 0 && VideoHeight > 0 ? (double)VideoWidth / VideoHeight : 0;
