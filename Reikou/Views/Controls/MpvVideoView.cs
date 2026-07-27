@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Threading;
-using Banned.Avalonia.Danmaku.Playback;
+using Banned.Avalonia.Danmaku.Services.Playback;
 using Microsoft.Extensions.Logging.Abstractions;
 using Reikou.Models.Enums;
 using Reikou.Models.Settings;

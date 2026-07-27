@@ -31,7 +31,7 @@
 		<PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
 		<PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.0" />
 		<PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
-		<PackageReference Include="Banned.Avalonia.Danmaku" Version="0.3.0" />
+		<PackageReference Include="Banned.Avalonia.Danmaku" Version="1.0.0" />
 		<PackageReference Include="MediaInfo.Native" Version="26.1.0"
 		                  Condition="$([MSBuild]::IsOSPlatform('Windows'))"
 		                  ExcludeAssets="build"

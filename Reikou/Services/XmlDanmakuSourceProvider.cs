@@ -1,6 +1,7 @@
-using Banned.Avalonia.Danmaku.Models;
-using Banned.Avalonia.Danmaku.Parsing;
-using Banned.Avalonia.Danmaku.Playback;
+using Banned.Avalonia.Danmaku.Models.Playback;
+using Banned.Avalonia.Danmaku.Services.Playback;
+using Banned.Danmaku.Models;
+using Banned.Danmaku.Utils.Parsing;
 using System;
 using System.Collections.Generic;
 using System.IO;

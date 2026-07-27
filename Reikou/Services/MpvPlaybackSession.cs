@@ -1,9 +1,11 @@
-using Banned.Avalonia.Danmaku.Playback;
+using Banned.Avalonia.Danmaku.Models.Playback;
+using Banned.Avalonia.Danmaku.Models.Playback.Events;
+using Banned.Avalonia.Danmaku.Services.Playback;
 using Reikou.Models.Enums;
 using System;
 using System.IO;
 using System.Threading;
-using DanmakuPlaybackState = Banned.Avalonia.Danmaku.Playback.PlaybackState;
+using DanmakuPlaybackState = Banned.Avalonia.Danmaku.Models.Playback.PlaybackState;
 
 namespace Reikou.Services;
 

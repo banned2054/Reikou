@@ -6,7 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Threading;
-using Banned.Avalonia.Danmaku.Options;
+using Banned.Avalonia.Danmaku.Models.Options;
 using Reikou.Models;
 using Reikou.Models.Settings;
 using Reikou.Services;
