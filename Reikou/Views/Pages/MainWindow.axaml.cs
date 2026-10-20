@@ -7,13 +7,17 @@ using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Banned.Avalonia.Danmaku.Models.Options;
+using Banned.Avalonia.Danmaku.Models.Playback;
 using Reikou.Models;
 using Reikou.Models.Settings;
 using Reikou.Services;
+using Reikou.Services.Danmaku;
 using Reikou.Utils;
 using Reikou.ViewModels;
 using Reikou.Views.Components;
+using Serilog;
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -27,69 +31,97 @@ public partial class MainWindow : Window
     private const uint WmEnterSizeMove = 0x0231;
     private const uint WmExitSizeMove  = 0x0232;
 
-    private readonly MainWindowViewModel     _viewModel;
-    private readonly DesktopVideoContextMenu _videoContextMenu;
-    private readonly AppSettingsStore        _settingsStore = AppSettingsStore.Current;
-
-    private Win32Properties.CustomWndProcHookCallback? _windowProcHook;
-    private XmlDanmakuSourceProvider                   _danmakuSourceProvider = new();
-    private SettingsWindow?                            _settingsWindow;
-
-    // --- 状态标志 ---
-    private bool _isDraggingSlider;
-    private int  _updateTimerCooldown;
-
     // --- 键盘/快进逻辑 ---
     private const double SeekStep         = 5.0;
     private const double LongPressDelayMs = 500;
 
-    private DateTime _keyPressStartTime;
-    private bool     _isFastForwarding;
-    private bool     _isSpaceKeyDown;
-    private Key?     _currentHeldKey;
+    private readonly DanmakuAssociationStore _danmakuAssociations =
+        new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Reikou",
+                         "danmaku-associations.json"));
 
-    // --- 鼠标/点击逻辑 ---
-    private DateTime         _mousePressTime;
-    private bool             _isMouseLongPressing;
-    private bool             _isMousePhysicallyDown;
-    private int              _clickCount;
+    private readonly PlaybackCoordinator     _playbackCoordinator;
+    private readonly AppSettingsStore        _settingsStore = AppSettingsStore.Current;
+    private readonly DesktopVideoContextMenu _videoContextMenu;
+    private readonly MainWindowViewModel     _viewModel;
+
+    private int _clickCount;
+
     private DispatcherTimer? _clickResetTimer;
-    private DispatcherTimer? _longPressTimer;
 
-    private DateTime         _lastMouseMoveTime;
-    private DispatcherTimer? _playbackUiTimer;
-    private DispatcherTimer? _uiVisibilityTimer;
+    private bool _closeCompleted;
+    private bool _closeInProgress;
+
+    private Key? _currentHeldKey;
+
+    private DanmakuProcessingOptions _danmakuProcessingOptions;
+    private XmlDanmakuSourceProvider _danmakuSourceProvider;
+
+    // --- 状态标志 ---
+    private bool     _isDraggingSlider;
+    private bool     _isFastForwarding;
+    private bool     _isMouseLongPressing;
+    private bool     _isMousePhysicallyDown;
+    private bool     _isSpaceKeyDown;
+    private DateTime _keyPressStartTime;
 
 #if DEBUG
     private long _lastDanmakuDiagnosticTimestamp;
 #endif
+    private DateTime         _lastMouseMoveTime;
+    private Point            _lastMousePosition;
+    private double           _lastVolume = 100.0;
+    private DispatcherTimer? _longPressTimer;
+
+    // --- 鼠标/点击逻辑 ---
+    private DateTime _mousePressTime;
 
     // --- 播放器状态 ---
-    private double                   _originalSpeed = 1.0;
+    private double _originalSpeed = 1.0;
+
+    private DispatcherTimer? _playbackUiTimer;
+
     private CancellationTokenSource? _playlistDurationLoadCts;
     private CancellationTokenSource? _settingsSaveCts;
+
+    private SettingsWindow?  _settingsWindow;
+    private DispatcherTimer? _uiVisibilityTimer;
+
+    private int _updateTimerCooldown;
+
+    private Win32Properties.CustomWndProcHookCallback? _windowProcHook;
 
     public MainWindow()
     {
         InitializeComponent();
+        _danmakuProcessingOptions       = DanmakuProcessingOptions.FromSettings(_settingsStore.Settings.Danmaku);
+        _danmakuSourceProvider          = new XmlDanmakuSourceProvider(_danmakuAssociations, _danmakuProcessingOptions);
         DanmakuLayer.PlaybackSession    = Player.PlaybackSession;
         DanmakuLayer.SourceProvider     = _danmakuSourceProvider;
         DanmakuLayer.Options.ResizeMode = DanmakuResizeMode.Immediate;
 
         _viewModel  = new MainWindowViewModel(_settingsStore.Settings);
         _lastVolume = _viewModel.Volume;
-
+        _playbackCoordinator =
+            new PlaybackCoordinator(Player.NativePlaybackSession ??
+                                    throw new InvalidOperationException("Playback session is unavailable."),
+                                    new PlaybackHistoryStore(Path.Combine(Environment.GetFolderPath(Environment
+                                                                             .SpecialFolder
+                                                                             .LocalApplicationData), "Reikou",
+                                                                          "playback-history.json")),
+                                    action => Dispatcher.UIThread.Post(action), () => _settingsStore.Settings.Playback,
+                                    Player.LoadNativeFileAsync, Player.Seek, () => Player.Stop(), TryAdvanceNaturally,
+                                    exception => Log.Error(exception, "Failed to persist playback history"));
         _viewModel.PropertyChanged          += ViewModel_PropertyChanged;
         _viewModel.Settings.SettingsChanged += OnSettingsChanged;
 
         InitializeCommands();     // 先初始化命令
         DataContext = _viewModel; // 再设置 DataContext，确保绑定发生时命令已就绪
         RestoreWindowPlacement(_settingsStore.Settings.Interface);
-        ApplyManagedSettings(_settingsStore.Settings, applyStartupState : true);
+        ApplyManagedSettings(_settingsStore.Settings, true);
 
         _videoContextMenu = new DesktopVideoContextMenu(() => Player.PlaybackState,
                                                         () => WindowState == WindowState.FullScreen, Player.TogglePause,
-                                                        () => Player.Stop(), ToggleFullscreen,
+                                                        () => _ = StopPlaybackAsync(), ToggleFullscreen,
                                                         trackId => Player.SelectAudioTrack(trackId),
                                                         () => Player.DisableAudioTrack(),
                                                         trackId => Player.SelectSubtitleTrack(trackId),
@@ -108,7 +140,34 @@ public partial class MainWindow : Window
 #endif
     }
 
-    private double _lastVolume = 100.0;
+    public async Task OpenMediaAsync(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || _closeInProgress) return;
+        filePath = Path.GetFullPath(filePath);
+
+        if (StringUtils.IsVideoFile(filePath))
+        {
+            var durationLoadToken = await ResetPlaylistDurationLoadAsync();
+
+            _viewModel.Playlist.LoadFromFile(filePath);
+            var item = _viewModel.Playlist.CurrentItem;
+            if (item != null)
+            {
+                await OpenPlaybackAsync(item.FilePath);
+                UpdateTitleFromPlaylist();
+            }
+
+            _ = LoadPlaylistDurationsAsync(durationLoadToken);
+        }
+        else if (StringUtils.IsSubtitleFile(filePath))
+        {
+            await LoadSubtitleWithResultAsync(filePath);
+        }
+        else if (StringUtils.IsDanmakuFile(filePath))
+        {
+            LoadDanmaku(filePath);
+        }
+    }
 
     private void InitializeCommands()
     {
@@ -116,22 +175,18 @@ public partial class MainWindow : Window
         _viewModel.PreviousCommand = new RelayCommand(async _ =>
         {
             var item = _viewModel.Playlist.GoToPrevious();
-            if (item != null)
-            {
-                await Player.LoadFileAsync(item.FilePath);
-                UpdateTitleFromPlaylist();
-            }
+            if (item == null) return;
+            await OpenPlaybackAsync(item.FilePath);
+            UpdateTitleFromPlaylist();
         });
         _viewModel.BackwardCommand = new RelayCommand(_ => Player.SeekRelative(-SeekStep));
         _viewModel.ForwardCommand  = new RelayCommand(_ => Player.SeekRelative(SeekStep));
         _viewModel.NextCommand = new RelayCommand(async _ =>
         {
             var item = _viewModel.Playlist.GoToNext();
-            if (item != null)
-            {
-                await Player.LoadFileAsync(item.FilePath);
-                UpdateTitleFromPlaylist();
-            }
+            if (item == null) return;
+            await OpenPlaybackAsync(item.FilePath);
+            UpdateTitleFromPlaylist();
         });
 
         _viewModel.ToggleMuteCommand = new RelayCommand(_ =>
@@ -160,7 +215,8 @@ public partial class MainWindow : Window
                 double doubleSpeed => doubleSpeed,
 
                 string stringSpeed when double.TryParse(stringSpeed, out var parsedSpeed) => parsedSpeed,
-                _                                                                         => 1.0
+
+                _ => 1.0
             };
 
             Player.Service?.SetProperty("speed", speed);
@@ -172,10 +228,7 @@ public partial class MainWindow : Window
         _viewModel.AddPlaylistItemCommand  = new RelayCommand(async _ => await AddPlaylistItemsAsync());
         _viewModel.RemovePlaylistItemCommand = new RelayCommand(async parameter =>
         {
-            if (parameter is PlaylistItem item)
-            {
-                await RemovePlaylistItemAsync(item);
-            }
+            if (parameter is PlaylistItem item) await RemovePlaylistItemAsync(item);
         });
         _viewModel.SelectPlaylistItemCommand = new RelayCommand(async parameter =>
         {
@@ -186,23 +239,18 @@ public partial class MainWindow : Window
             if (selectedItem == null)
                 return;
 
-            await Player.LoadFileAsync(selectedItem.FilePath);
+            await OpenPlaybackAsync(selectedItem.FilePath);
             UpdateTitleFromPlaylist();
             OverlayControls.IsPlaylistPopupOpen = false;
         });
     }
 
-    private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainWindowViewModel.Volume))
-        {
-            Player.Service?.SetProperty("volume", _viewModel.Volume);
+        if (e.PropertyName != nameof(MainWindowViewModel.Volume)) return;
+        Player.Service?.SetProperty("volume", _viewModel.Volume);
 
-            if (_viewModel.Volume > 0)
-            {
-                _lastVolume = _viewModel.Volume;
-            }
-        }
+        if (_viewModel.Volume > 0) _lastVolume = _viewModel.Volume;
     }
 
     private void ToggleFullscreen()
@@ -237,10 +285,7 @@ public partial class MainWindow : Window
         }
         finally
         {
-            if (ReferenceEquals(_settingsWindow, settingsWindow))
-            {
-                _settingsWindow = null;
-            }
+            if (ReferenceEquals(_settingsWindow, settingsWindow)) _settingsWindow = null;
 
             CompleteSettingsClose();
         }
@@ -262,10 +307,7 @@ public partial class MainWindow : Window
         _viewModel.Settings.IsOpen = false;
         _lastMouseMoveTime         = DateTime.Now;
 
-        if (IsVisible)
-        {
-            ShowOverlay();
-        }
+        if (IsVisible) ShowOverlay();
     }
 
     private void OnSettingsChanged(AppSettings settings)
@@ -273,50 +315,49 @@ public partial class MainWindow : Window
         var previous   = _settingsStore.Settings;
         var normalized = _settingsStore.Update(settings);
         _viewModel.MaximumVolume = normalized.Audio.MaximumVolume;
-        if (_viewModel.Volume > normalized.Audio.MaximumVolume)
-        {
-            _viewModel.Volume = normalized.Audio.MaximumVolume;
-        }
+        if (_viewModel.Volume > normalized.Audio.MaximumVolume) _viewModel.Volume = normalized.Audio.MaximumVolume;
 
         Player.ApplyRuntimeSettings(previous, normalized);
-        ApplyManagedSettings(normalized, applyStartupState : false);
+        ApplyManagedSettings(normalized, false);
         QueueSettingsSave();
     }
 
     private void ApplyManagedSettings(AppSettings settings, bool applyStartupState)
     {
         var normalized = settings.Normalize();
+        _viewModel.Playlist.IsLooping = normalized.Playback.LoopPlaylist;
         if (Application.Current != null)
-        {
             Application.Current.RequestedThemeVariant = normalized.Interface.Theme switch
             {
                 ApplicationThemeMode.Dark  => ThemeVariant.Dark,
                 ApplicationThemeMode.Light => ThemeVariant.Light,
                 _                          => ThemeVariant.Default
             };
-        }
 
         DanmakuLayer.IsVisible                = normalized.Danmaku.Enabled;
         DanmakuLayer.Options.OpacityRatio     = normalized.Danmaku.Opacity;
         DanmakuLayer.Options.FontScale        = normalized.Danmaku.FontScale;
         DanmakuLayer.Options.ScrollSpeed      = normalized.Danmaku.Speed;
         DanmakuLayer.Options.DisplayAreaRatio = normalized.Danmaku.Density / 100.0;
-
-        if (applyStartupState                      &&
-            normalized.Interface.StartInFullscreen &&
-            WindowState != WindowState.FullScreen)
+        var processing = DanmakuProcessingOptions.FromSettings(normalized.Danmaku);
+        if (processing != _danmakuProcessingOptions)
         {
-            WindowState             = WindowState.FullScreen;
-            _viewModel.IsFullscreen = true;
+            _danmakuProcessingOptions   = processing;
+            _danmakuSourceProvider      = _danmakuSourceProvider.WithProcessing(processing);
+            DanmakuLayer.SourceProvider = _danmakuSourceProvider;
         }
+
+        if (!applyStartupState                      ||
+            !normalized.Interface.StartInFullscreen ||
+            WindowState == WindowState.FullScreen)
+            return;
+        WindowState             = WindowState.FullScreen;
+        _viewModel.IsFullscreen = true;
     }
 
     private void RestoreWindowPlacement(InterfaceSettings settings)
     {
-        if (!settings.RememberWindow)
-        {
-            return;
-        }
+        if (!settings.RememberWindow) return;
 
         if (settings is { WindowWidth: { } width, WindowHeight: { } height })
         {
@@ -324,15 +365,9 @@ public partial class MainWindow : Window
             Height = height;
         }
 
-        if (settings is { WindowX: { } x, WindowY: { } y })
-        {
-            Position = new PixelPoint(x, y);
-        }
+        if (settings is { WindowX: { } x, WindowY: { } y }) Position = new PixelPoint(x, y);
 
-        if (settings.WindowMaximized)
-        {
-            WindowState = WindowState.Maximized;
-        }
+        if (settings.WindowMaximized) WindowState = WindowState.Maximized;
     }
 
     private void SaveWindowPlacement()
@@ -412,24 +447,21 @@ public partial class MainWindow : Window
 
         PropertyChanged += (_, args) =>
         {
-            if (args.Property == WindowStateProperty)
-            {
-                LiveResizeViewport.CommitOnNextArrange();
-            }
+            if (args.Property == WindowStateProperty) LiveResizeViewport.CommitOnNextArrange();
 
-            if (args.Property == ClientSizeProperty)
-            {
-                LiveResizeViewport.PreviewDisplaySize(ClientSize);
-            }
+            if (args.Property == ClientSizeProperty) LiveResizeViewport.PreviewDisplaySize(ClientSize);
         };
         ScalingChanged += (_, _) =>
         {
             LiveResizeViewport.CommitOnNextArrange();
             Player.RefreshVideoFrame();
         };
+        Closing += OnWindowClosing;
         Closed += (_, _) =>
         {
             _viewModel.Settings.SettingsChanged -= OnSettingsChanged;
+            _playbackCoordinator.StatusChanged  -= OnPlaybackStatusChanged;
+            _playbackCoordinator.Dispose();
             SaveWindowPlacement();
 
             if (_windowProcHook != null)
@@ -440,11 +472,6 @@ public partial class MainWindow : Window
 
             _playbackUiTimer?.Stop();
             _uiVisibilityTimer?.Stop();
-            if (Player.Service is { } service)
-            {
-                service.PlaybackStateChanged -= OnPlayerPlaybackStateChanged;
-            }
-
             _playlistDurationLoadCts?.Cancel();
             _settingsSaveCts?.Cancel();
             _settingsSaveCts?.Dispose();
@@ -468,55 +495,70 @@ public partial class MainWindow : Window
             if (_isMousePhysicallyDown) StartMouseLongPress();
         };
 
-        // 播放器事件回调
-        if (Player.Service is { } service)
-        {
-            service.PlaybackStateChanged += OnPlayerPlaybackStateChanged;
-        }
-
+        _playbackCoordinator.StatusChanged += OnPlaybackStatusChanged;
+        _viewModel.PlaybackStatus          =  _playbackCoordinator.Status;
         UpdateIsPlayingFromPlayerState();
-
-        Player.FileLoaded += (_, fileName) =>
-        {
-            Dispatcher.UIThread.Post(() =>
-            {
-                // 更新当前播放项的标题（如果路径匹配）
-                var currentItem = _viewModel.Playlist.CurrentItem;
-                if (currentItem != null && Path.GetFileNameWithoutExtension(currentItem.FilePath) == fileName)
-                {
-                    UpdateTitleFromPlaylist();
-                }
-                else
-                {
-                    OverlayControls.Title = fileName;
-                }
-            });
-        };
 
         DanmakuLayer.LoadFailed += (_, e) =>
         {
-            Debug.WriteLine($"[Danmaku] Failed to load '{e.MediaId}': {e.Exception}");
+            Log.Warning(e.Exception, "Failed to load danmaku for {MediaId}", e.MediaId);
+            Dispatcher.UIThread.Post(() => ReportOperation("弹幕", false, e.Exception.Message));
         };
     }
 
-    private void OnPlayerPlaybackStateChanged(object? sender, MpvPlaybackStateChangedEventArgs e)
+    private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
-        if (e.PreviousState.IsPaused == e.CurrentState.IsPaused)
+        if (_closeCompleted) return;
+
+        e.Cancel = true;
+        if (_closeInProgress) return;
+
+        _closeInProgress = true;
+        _playbackUiTimer?.Stop();
+        _uiVisibilityTimer?.Stop();
+        _playlistDurationLoadCts?.Cancel();
+        try
         {
-            return;
+            await _playbackCoordinator.CloseAsync();
+        }
+        catch (Exception exception)
+        {
+            Log.Error(exception, "Failed to save playback state before closing");
         }
 
-        if (Dispatcher.UIThread.CheckAccess())
+        try
         {
-            UpdateIsPlayingFromPlayerState();
+            await _danmakuAssociations.SaveAsync();
         }
-        else
+        catch (Exception exception)
         {
-            Dispatcher.UIThread.Post(UpdateIsPlayingFromPlayerState);
+            Log.Error(exception, "Failed to save danmaku associations before closing");
+        }
+        finally
+        {
+            _closeCompleted = true;
+            Close();
         }
     }
 
-    private void UpdateIsPlayingFromPlayerState() => _viewModel.IsPlaying = !Player.PlaybackState.IsPaused;
+    private void OnPlaybackStatusChanged(object? sender, PlaybackStatusChangedEventArgs e)
+    {
+        if (_closeInProgress) return;
+
+        _viewModel.PlaybackStatus = e.Status;
+        _viewModel.IsPlaying      = e.Status.State == PlaybackStatusKind.Playing;
+        _viewModel.IsBuffering    = e.Status.IsBuffering;
+        _viewModel.IsSeekable     = e.Status.IsSeekable;
+        if (e.Status.State == PlaybackStatusKind.Failed)
+            ReportOperation("播放", false, e.Status.ErrorMessage ?? "媒体播放失败。");
+    }
+
+    private void UpdateIsPlayingFromPlayerState()
+    {
+        _viewModel.IsPlaying   = Player.PlaybackSession?.State == PlaybackState.Playing;
+        _viewModel.IsBuffering = Player.PlaybackState.IsBuffering;
+        _viewModel.IsSeekable  = Player.PlaybackState.IsSeekable;
+    }
 
     private IntPtr OnWindowsMessage(IntPtr hwnd, uint message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
@@ -536,10 +578,8 @@ public partial class MainWindow : Window
     private void UpdateTitleFromPlaylist()
     {
         var item = _viewModel.Playlist.CurrentItem;
-        if (item != null)
-        {
-            OverlayControls.Title = item.Title;
-        }
+
+        if (item != null) OverlayControls.Title = item.Title;
     }
 
     private void StartSyncTimer()
@@ -566,21 +606,16 @@ public partial class MainWindow : Window
             _viewModel.Settings.SetActiveHardwareDecoder(state.HardwareDecoder);
             DanmakuContentHost.AspectRatio = state.VideoAspectRatio;
 
-            var currentItem = _viewModel.Playlist.CurrentItem;
-            if (currentItem != null && state.Duration > 0)
-            {
-                currentItem.Duration = state.Duration;
-            }
+            var currentItem                                                     = _viewModel.Playlist.CurrentItem;
+            if (currentItem != null && state.Duration > 0) currentItem.Duration = state.Duration;
 
 #if DEBUG
             var now = Stopwatch.GetTimestamp();
-            if (now - _lastDanmakuDiagnosticTimestamp >= Stopwatch.Frequency)
-            {
-                Debug.WriteLine($"[Danmaku] source items={DanmakuLayer.DanmakuCount}; " +
-                                $"loading={DanmakuLayer.IsLoading}; "                   +
-                                $"viewport={DanmakuLayer.Bounds.Width:0.#}x{DanmakuLayer.Bounds.Height:0.#}");
-                _lastDanmakuDiagnosticTimestamp = now;
-            }
+            if (now - _lastDanmakuDiagnosticTimestamp < Stopwatch.Frequency) return;
+            Debug.WriteLine($"[Danmaku] source items={DanmakuLayer.DanmakuCount}; " +
+                            $"loading={DanmakuLayer.IsLoading}; "                   +
+                            $"viewport={DanmakuLayer.Bounds.Width:0.#}x{DanmakuLayer.Bounds.Height:0.#}");
+            _lastDanmakuDiagnosticTimestamp = now;
 #endif
         };
         _playbackUiTimer.Start();
@@ -597,7 +632,7 @@ public partial class MainWindow : Window
             // 通过鼠标位置判断是否在控制面板区域内（底部控制栏高度约 60-80 像素）
             // 顶部标题栏也计入控制区域
             var isMouseOverControlArea =
-                _lastMousePosition.Y >= (this.Bounds.Height - 80) || _lastMousePosition.Y <= 60;
+                _lastMousePosition.Y >= Bounds.Height - 80 || _lastMousePosition.Y <= 60;
 
             // 只要满足下列任何一个条件，就不隐藏面板，并且刷新计时
             if (isMouseOverControlArea                ||
@@ -615,10 +650,7 @@ public partial class MainWindow : Window
             // 判断距离最后一次移动鼠标是否超过了设定的秒数
             var hideDelay = _settingsStore.Settings.Interface.OverlayHideDelay;
             if (!((DateTime.Now - _lastMouseMoveTime).TotalSeconds >= hideDelay)) return;
-            if (OverlayControls.Opacity > 0)
-            {
-                HideOverlay();
-            }
+            if (OverlayControls.Opacity > 0) HideOverlay();
         };
         _uiVisibilityTimer.Start();
     }
@@ -661,12 +693,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (ShouldPreserveFocusedControlKeyboardInput(e))
-        {
-            return;
-        }
+        if (ShouldPreserveFocusedControlKeyboardInput(e)) return;
 
-        if (e.Key == Key.Space && e.KeyModifiers == KeyModifiers.None)
+        if (e is { Key: Key.Space, KeyModifiers: KeyModifiers.None })
         {
             if (!_isSpaceKeyDown)
             {
@@ -683,9 +712,7 @@ public partial class MainWindow : Window
         if (_currentHeldKey == e.Key)
         {
             if (!_isFastForwarding && (DateTime.Now - _keyPressStartTime).TotalMilliseconds > LongPressDelayMs)
-            {
                 StartKeyFastForward(e.Key);
-            }
 
             if (_isFastForwarding)
             {
@@ -708,25 +735,16 @@ public partial class MainWindow : Window
         {
             var wasHandled = _isSpaceKeyDown;
             _isSpaceKeyDown = false;
-            if (wasHandled)
-            {
-                e.Handled = true;
-            }
+            if (wasHandled) e.Handled = true;
 
             return;
         }
 
-        if (_viewModel.Settings.IsOpen)
-        {
-            return;
-        }
+        if (_viewModel.Settings.IsOpen) return;
 
         if (ShouldPreserveFocusedControlKeyboardInput(e))
         {
-            if (e.Key == _currentHeldKey)
-            {
-                CancelHeldSeekKey();
-            }
+            if (e.Key == _currentHeldKey) CancelHeldSeekKey();
 
             return;
         }
@@ -735,7 +753,10 @@ public partial class MainWindow : Window
 
         if (e.Key == _currentHeldKey)
         {
-            if (_isFastForwarding) StopKeyFastForward();
+            if (_isFastForwarding)
+            {
+                StopKeyFastForward();
+            }
             else
             {
                 if (e.Key == Key.Right)
@@ -752,21 +773,24 @@ public partial class MainWindow : Window
 
     private bool ShouldPreserveFocusedControlKeyboardInput(KeyEventArgs e)
     {
-        if (_viewModel.Settings.IsOpen          || _videoContextMenu.Menu.IsOpen      ||
-            OverlayControls.IsPlaylistPopupOpen || OverlayControls.IsVolumeFlyoutOpen ||
+        if (_viewModel.Settings.IsOpen          ||
+            _videoContextMenu.Menu.IsOpen       ||
+            OverlayControls.IsPlaylistPopupOpen ||
+            OverlayControls.IsVolumeFlyoutOpen  ||
             OverlayControls.IsPointerOverFlyout)
-        {
             return true;
-        }
 
-        for (StyledElement? element = e.Source as StyledElement; element != null; element = element.Parent)
-        {
-            if (element is TextBox or NumericUpDown or ComboBox or Button or ToggleButton or MenuItem or ListBoxItem or
-                           Slider or ScrollBar)
-            {
+        for (var element = e.Source as StyledElement; element != null; element = element.Parent)
+            if (element is TextBox
+                        or NumericUpDown
+                        or ComboBox
+                        or Button
+                        or ToggleButton
+                        or MenuItem
+                        or ListBoxItem
+                        or Slider
+                        or ScrollBar)
                 return true;
-            }
-        }
 
         return false;
     }
@@ -779,10 +803,7 @@ public partial class MainWindow : Window
 
     private void CancelHeldSeekKey()
     {
-        if (_isFastForwarding)
-        {
-            StopKeyFastForward();
-        }
+        if (_isFastForwarding) StopKeyFastForward();
 
         _currentHeldKey = null;
     }
@@ -815,10 +836,7 @@ public partial class MainWindow : Window
         _isMousePhysicallyDown = false;
 
         if (_isMouseLongPressing) StopMouseLongPress();
-        else if ((DateTime.Now - _mousePressTime).TotalMilliseconds < LongPressDelayMs)
-        {
-            HandleClickOrDoubleClick();
-        }
+        else if ((DateTime.Now - _mousePressTime).TotalMilliseconds < LongPressDelayMs) HandleClickOrDoubleClick();
     }
 
     private void StartMouseLongPress()
@@ -854,46 +872,60 @@ public partial class MainWindow : Window
 
     #region 文件处理与弹幕加载
 
-    public async Task OpenMediaAsync(string filePath)
+    private string? TryAdvanceNaturally(string endedPath)
     {
-        if (string.IsNullOrWhiteSpace(filePath)) return;
+        if (_closeInProgress) return null;
 
-        if (StringUtils.IsVideoFile(filePath))
+        var item = _viewModel.Playlist.GoToNextAfterEnd(endedPath, _settingsStore.Settings.Playback.LoopFile);
+        if (item == null) return null;
+
+        UpdateTitleFromPlaylist();
+        return item.FilePath;
+    }
+
+    private async Task OpenPlaybackAsync(string path)
+    {
+        if (_closeInProgress) return;
+
+        await _playbackCoordinator.OpenAsync(path);
+    }
+
+    private async Task StopPlaybackAsync(bool clearMedia = false)
+    {
+        await _playbackCoordinator.StopAsync(clearMedia);
+    }
+
+    private void ReportOperation(string operation, bool succeeded, string message)
+    {
+        if (_closeInProgress) return;
+
+        _viewModel.LastOperationResult = new PlayerOperationResult(operation, succeeded, message, DateTimeOffset.Now);
+        if (!succeeded) Log.Warning("{Operation} failed: {Message}", operation, message);
+    }
+
+    private async Task LoadSubtitleWithResultAsync(string path)
+    {
+        try
         {
-            var durationLoadToken = await ResetPlaylistDurationLoadAsync();
-
-            _viewModel.Playlist.LoadFromFile(filePath);
-            var item = _viewModel.Playlist.CurrentItem;
-            if (item != null)
-            {
-                await Player.LoadFileAsync(item.FilePath);
-                UpdateTitleFromPlaylist();
-            }
-
-            _ = LoadPlaylistDurationsAsync(durationLoadToken);
+            var status = await Player.LoadSubtitleAsync(path);
+            ReportOperation("字幕", (int)status >= 0, (int)status >= 0 ? "字幕已加载。" : $"字幕加载失败：{status}");
         }
-        else if (StringUtils.IsSubtitleFile(filePath))
+        catch (Exception exception)
         {
-            await Player.LoadSubtitleAsync(filePath);
-        }
-        else if (StringUtils.IsDanmakuFile(filePath))
-        {
-            LoadDanmaku(filePath);
+            ReportOperation("字幕", false, exception.Message);
         }
     }
 
     private void LoadDanmaku(string filePath)
     {
-        _danmakuSourceProvider = _danmakuSourceProvider.WithSource(
-                                                                   Player.PlaybackSession?.CurrentMediaId,
-                                                                   filePath);
+        _danmakuSourceProvider = _danmakuSourceProvider.WithSource(Player.PlaybackSession?.CurrentMediaId, filePath);
         DanmakuLayer.SourceProvider = _danmakuSourceProvider;
-        DanmakuLayer.IsVisible      = true;
+        DanmakuLayer.IsVisible = true;
     }
 
     private async Task AddPlaylistItemsAsync()
     {
-        var topLevel = TopLevel.GetTopLevel(this);
+        var topLevel = GetTopLevel(this);
         if (topLevel == null)
             return;
 
@@ -925,7 +957,7 @@ public partial class MainWindow : Window
 
         if (wasEmpty && _viewModel.Playlist.CurrentItem is { } currentItem)
         {
-            await Player.LoadFileAsync(currentItem.FilePath);
+            await OpenPlaybackAsync(currentItem.FilePath);
             UpdateTitleFromPlaylist();
         }
 
@@ -955,10 +987,7 @@ public partial class MainWindow : Window
                             .FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) &&
                                                     StringUtils.IsSubtitleFile(path));
 
-        if (filePath != null)
-        {
-            await Player.LoadSubtitleAsync(filePath);
-        }
+        if (filePath != null) await LoadSubtitleWithResultAsync(filePath);
     }
 
     private async Task RemovePlaylistItemAsync(PlaylistItem item)
@@ -975,12 +1004,12 @@ public partial class MainWindow : Window
 
         if (_viewModel.Playlist.CurrentItem is { } currentItem)
         {
-            await Player.LoadFileAsync(currentItem.FilePath);
+            await OpenPlaybackAsync(currentItem.FilePath);
             UpdateTitleFromPlaylist();
             return;
         }
 
-        Player.Stop(clearMedia : true);
+        await StopPlaybackAsync(true);
         _viewModel.CurrentTime = 0;
         _viewModel.Duration    = 0;
         _viewModel.IsPlaying   = false;
@@ -1015,10 +1044,7 @@ public partial class MainWindow : Window
                     continue;
 
                 var duration = await MediaMetadataReader.TryGetDurationAsync(item.FilePath, cancellationToken);
-                if (duration is > 0 && !cancellationToken.IsCancellationRequested)
-                {
-                    item.Duration = duration.Value;
-                }
+                if (duration is > 0 && !cancellationToken.IsCancellationRequested) item.Duration = duration.Value;
             }
         }
         catch (OperationCanceledException)
@@ -1052,44 +1078,33 @@ public partial class MainWindow : Window
 
     #region 鼠标移动与 UI 隐藏显示控制
 
-    private Avalonia.Point _lastMousePosition;
-
     private void OnWindowPointerMoved(object? sender, PointerEventArgs e)
     {
         var currentPosition = e.GetPosition(this);
         // 忽略因为控件隐藏/显示导致的虚假鼠标移动事件
         if (Math.Abs(currentPosition.X - _lastMousePosition.X) < 1.0 &&
             Math.Abs(currentPosition.Y - _lastMousePosition.Y) < 1.0)
-        {
             return;
-        }
 
         _lastMousePosition = currentPosition;
 
         _lastMouseMoveTime = DateTime.Now;
 
         // 如果当前是隐藏状态，则唤醒它
-        if (OverlayControls.Opacity < 1.0)
-        {
-            ShowOverlay();
-        }
+        if (OverlayControls.Opacity < 1.0) ShowOverlay();
     }
 
     private void OnWindowPointerExited(object? sender, PointerEventArgs e)
     {
         var pos = e.GetPosition(this);
         // 检查是否真的离开了窗口物理范围，如果还在窗口内部（例如进入了Popup或遮罩层），则忽略
-        if (pos.X > 0 && pos.X < Bounds.Width && pos.Y > 0 && pos.Y < Bounds.Height)
-        {
-            return;
-        }
+        if (pos.X > 0 && pos.X < Bounds.Width && pos.Y > 0 && pos.Y < Bounds.Height) return;
 
         // 鼠标移出软件窗口时，如果鼠标不在控制面板上，直接隐藏（优化体验）
         // 延时一下判断，防止由于鼠标移入Popup（Flyout）导致短暂的触发Exited
         DispatcherTimer.RunOnce(() =>
         {
-            var isMouseOverControlArea =
-                _lastMousePosition.Y >= (Bounds.Height - 80) || _lastMousePosition.Y <= 60;
+            var isMouseOverControlArea = _lastMousePosition.Y >= Bounds.Height - 80 || _lastMousePosition.Y <= 60;
 
             if (!isMouseOverControlArea                &&
                 !OverlayControls.IsPointerOverToolArea &&
@@ -1098,9 +1113,7 @@ public partial class MainWindow : Window
                 !_viewModel.Settings.IsOpen            &&
                 !OverlayControls.IsPointerOverFlyout   &&
                 !OverlayControls.IsPlaylistPopupActive)
-            {
                 HideOverlay();
-            }
         }, TimeSpan.FromMilliseconds(100));
     }
 
@@ -1122,11 +1135,13 @@ public partial class MainWindow : Window
         try
         {
             Directory.CreateDirectory(directory);
-            Player.Service?.Command("screenshot", "window");
+            var status = Player.TakeScreenshot();
+            ReportOperation("截图", (int)status >= 0,
+                            (int)status >= 0 ? $"截图已保存到 {directory}" : $"截图失败：{status}");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            Debug.WriteLine($"Failed to create screenshot directory '{directory}': {exception}");
+            ReportOperation("截图", false, exception.Message);
         }
     }
 
@@ -1134,25 +1149,22 @@ public partial class MainWindow : Window
     {
         OverlayControls.Opacity          = 1.0;
         OverlayControls.IsHitTestVisible = true;           // 允许点击
-        this.Cursor                      = Cursor.Default; // 恢复显示鼠标指针
+        Cursor                           = Cursor.Default; // 恢复显示鼠标指针
     }
 
     private void HideOverlay()
     {
         OverlayControls.Opacity          = 0.0;
-        OverlayControls.IsHitTestVisible = false;          // 防止透明状态下误触
-        OverlayControls.HideFlyouts();                     // 关闭音量等所有Flyout面板
-        this.Cursor = new Cursor(StandardCursorType.None); // 隐藏鼠标指针
+        OverlayControls.IsHitTestVisible = false;     // 防止透明状态下误触
+        OverlayControls.HideFlyouts();                // 关闭音量等所有Flyout面板
+        Cursor = new Cursor(StandardCursorType.None); // 隐藏鼠标指针
     }
 
 #if DEBUG
     private void ApplyResizeDiagnosticLayerSelection()
     {
         var configuredLayers = Environment.GetEnvironmentVariable("REIKOU_RESIZE_LAYERS");
-        if (string.IsNullOrWhiteSpace(configuredLayers))
-        {
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(configuredLayers)) return;
 
         var layers =
             configuredLayers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

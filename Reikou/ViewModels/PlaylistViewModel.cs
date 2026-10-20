@@ -1,4 +1,5 @@
 using Reikou.Models;
+using Reikou.Services;
 using Reikou.Utils;
 using System;
 using System.Collections.Generic;
@@ -12,8 +13,8 @@ namespace Reikou.ViewModels;
 
 public class PlaylistViewModel : INotifyPropertyChanged
 {
-    private int  _currentIndex                = -1;
     private bool _autoLoadVideosFromDirectory = true;
+    private int  _currentIndex                = -1;
     private bool _isLooping;
     private bool _isShuffling;
 
@@ -24,13 +25,11 @@ public class PlaylistViewModel : INotifyPropertyChanged
         get => _currentIndex;
         private set
         {
-            if (SetField(ref _currentIndex, value))
-            {
-                UpdatePlayingStates();
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentItem)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanGoPrevious)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanGoNext)));
-            }
+            if (!SetField(ref _currentIndex, value)) return;
+            UpdatePlayingStates();
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentItem)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanGoPrevious)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanGoNext)));
         }
     }
 
@@ -74,10 +73,7 @@ public class PlaylistViewModel : INotifyPropertyChanged
 
         Items.Add(item);
 
-        if (Items.Count == 1)
-        {
-            CurrentIndex = 0;
-        }
+        if (Items.Count == 1) CurrentIndex = 0;
 
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanGoPrevious)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanGoNext)));
@@ -85,10 +81,7 @@ public class PlaylistViewModel : INotifyPropertyChanged
 
     public void AddFiles(IEnumerable<string> filePaths)
     {
-        foreach (var path in filePaths)
-        {
-            AddFile(path);
-        }
+        foreach (var path in filePaths) AddFile(path);
     }
 
     public void LoadFromFile(string filePath)
@@ -112,13 +105,8 @@ public class PlaylistViewModel : INotifyPropertyChanged
         Items.RemoveAt(index);
 
         if (Items.Count == 0)
-        {
-            CurrentIndex = -1;
-        }
-        else if (index <= _currentIndex)
-        {
-            CurrentIndex = Math.Max(0, _currentIndex - 1);
-        }
+            CurrentIndex                              = -1;
+        else if (index <= _currentIndex) CurrentIndex = Math.Max(0, _currentIndex - 1);
 
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanGoPrevious)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanGoNext)));
@@ -130,10 +118,7 @@ public class PlaylistViewModel : INotifyPropertyChanged
         CurrentIndex = -1;
     }
 
-    public bool IsVideoFile(string filePath)
-    {
-        return StringUtils.IsVideoFile(filePath);
-    }
+    public bool IsVideoFile(string filePath) => StringUtils.IsVideoFile(filePath);
 
     public PlaylistItem? GoTo(int index)
     {
@@ -153,11 +138,8 @@ public class PlaylistViewModel : INotifyPropertyChanged
         }
         else
         {
-            var newIndex = _currentIndex - 1;
-            if (newIndex < 0)
-            {
-                newIndex = IsLooping ? Items.Count - 1 : 0;
-            }
+            var newIndex               = _currentIndex           - 1;
+            if (newIndex < 0) newIndex = IsLooping ? Items.Count - 1 : 0;
 
             CurrentIndex = newIndex;
         }
@@ -176,11 +158,8 @@ public class PlaylistViewModel : INotifyPropertyChanged
         }
         else
         {
-            var newIndex = _currentIndex + 1;
-            if (newIndex >= Items.Count)
-            {
-                newIndex = IsLooping ? 0 : Items.Count - 1;
-            }
+            var newIndex                          = _currentIndex               + 1;
+            if (newIndex >= Items.Count) newIndex = IsLooping ? 0 : Items.Count - 1;
 
             CurrentIndex = newIndex;
         }
@@ -188,11 +167,25 @@ public class PlaylistViewModel : INotifyPropertyChanged
         return CurrentItem;
     }
 
+    public PlaylistItem? GoToNextAfterEnd(string endedPath, bool loopFile)
+    {
+        var comparer = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (CurrentItem is not { } current || !string.Equals(current.FilePath, endedPath, comparer)) return null;
+
+        var next = PlaybackNavigationPolicy.NextAfterEnd(CurrentIndex, Items.Count, loopFile, IsLooping);
+        if (next == null) return null;
+
+        if (!IsShuffling || Items.Count <= 1) return GoTo(next.Value);
+        var randomIndex = Random.Shared.Next(Items.Count - 1);
+        next = randomIndex >= CurrentIndex ? randomIndex + 1 : randomIndex;
+
+        return GoTo(next.Value);
+    }
+
     public PlaylistItem? GoToFile(string filePath)
     {
         var index = Items.ToList().FindIndex(x => x.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase));
-        if (index < 0) return null;
-        return GoTo(index);
+        return index < 0 ? null : GoTo(index);
     }
 
     public void MoveItem(int oldIndex, int newIndex)
@@ -206,25 +199,10 @@ public class PlaylistViewModel : INotifyPropertyChanged
         Items.Insert(newIndex, item);
 
         if (_currentIndex == oldIndex)
-        {
             CurrentIndex = newIndex;
-        }
         else if (oldIndex < _currentIndex && newIndex >= _currentIndex)
-        {
             CurrentIndex--;
-        }
-        else if (oldIndex > _currentIndex && newIndex <= _currentIndex)
-        {
-            CurrentIndex++;
-        }
-    }
-
-    private void UpdatePlayingStates()
-    {
-        for (var i = 0; i < Items.Count; i++)
-        {
-            Items[i].IsPlaying = i == _currentIndex;
-        }
+        else if (oldIndex > _currentIndex && newIndex <= _currentIndex) CurrentIndex++;
     }
 
     protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
@@ -233,6 +211,11 @@ public class PlaylistViewModel : INotifyPropertyChanged
         field = value;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         return true;
+    }
+
+    private void UpdatePlayingStates()
+    {
+        for (var i = 0; i < Items.Count; i++) Items[i].IsPlaying = i == _currentIndex;
     }
 
     private IEnumerable<string> GetVideosInSameDirectory(string filePath)

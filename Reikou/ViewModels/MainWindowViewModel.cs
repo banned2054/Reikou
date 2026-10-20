@@ -1,4 +1,6 @@
+using Reikou.Models;
 using Reikou.Models.Settings;
+using Reikou.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -11,24 +13,25 @@ internal class MainWindowViewModel : INotifyPropertyChanged
 {
     private double _currentTime;
     private double _duration;
-    private double _playbackSpeed      = 1.0;
-    private double _volume             = 100.0;
-    private double _maximumVolume      = 130.0;
-    private double _longPressJumpSpeed = 0.5;
-    private double _lastUiUpdateTime;
+    private bool   _isBuffering;
+    private bool   _isFullscreen;
+    private bool   _isPlaying;
+    private bool   _isSeekable;
+
+    private PlayerOperationResult? _lastOperationResult;
+
     private double _lastTimeTextCurrent;
     private double _lastTimeTextDuration;
+    private double _lastUiUpdateTime;
+
+    private double _longPressJumpSpeed = 0.5;
+    private double _maximumVolume      = 130.0;
+    private double _playbackSpeed      = 1.0;
+
+    private PlaybackStatus? _playbackStatus;
 
     private string _timeText = "00:00 / 00:00";
-
-    private bool _isPlaying;
-    private bool _isFullscreen;
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    // --- ViewModels ---
-    public PlaylistViewModel Playlist { get; } = new();
-    public SettingsViewModel Settings { get; }
+    private double _volume   = 100.0;
 
     public MainWindowViewModel(AppSettings settings)
     {
@@ -38,6 +41,10 @@ internal class MainWindowViewModel : INotifyPropertyChanged
         _playbackSpeed = normalized.Playback.DefaultSpeed;
         Settings       = new SettingsViewModel(settings);
     }
+
+    // --- ViewModels ---
+    public PlaylistViewModel Playlist { get; } = new();
+    public SettingsViewModel Settings { get; }
 
     // --- Commands ---
     public ICommand PlayPauseCommand          { get; set; } = null!;
@@ -61,9 +68,7 @@ internal class MainWindowViewModel : INotifyPropertyChanged
         set
         {
             if (SetField(ref _volume, value))
-            {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsMuted)));
-            }
         }
     }
 
@@ -111,15 +116,37 @@ internal class MainWindowViewModel : INotifyPropertyChanged
         set => SetField(ref _isPlaying, value);
     }
 
+    public PlaybackStatus? PlaybackStatus
+    {
+        get => _playbackStatus;
+        set => SetField(ref _playbackStatus, value);
+    }
+
+    public bool IsBuffering
+    {
+        get => _isBuffering;
+        set => SetField(ref _isBuffering, value);
+    }
+
+    public bool IsSeekable
+    {
+        get => _isSeekable;
+        set => SetField(ref _isSeekable, value);
+    }
+
+    public PlayerOperationResult? LastOperationResult
+    {
+        get => _lastOperationResult;
+        set => SetField(ref _lastOperationResult, value);
+    }
+
     public double PlaybackSpeed
     {
         get => _playbackSpeed;
         set
         {
             if (SetField(ref _playbackSpeed, value))
-            {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PlaybackSpeedText)));
-            }
         }
     }
 
@@ -131,6 +158,27 @@ internal class MainWindowViewModel : INotifyPropertyChanged
     {
         get => _isFullscreen;
         set => SetField(ref _isFullscreen, value);
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public void UpdateTimeFromPlayer(double time, double duration)
+    {
+        if (Math.Abs(time - _lastUiUpdateTime) < 0.1)
+            return;
+
+        _lastUiUpdateTime = time;
+
+        CurrentTime = time;
+        Duration    = duration;
+    }
+
+    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+        field = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        return true;
     }
 
     private void UpdateTimeText()
@@ -158,24 +206,5 @@ internal class MainWindowViewModel : INotifyPropertyChanged
             { TotalHours: >= 1 } => $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}",
             _                    => $"{ts.Minutes:D2}:{ts.Seconds:D2}"
         };
-    }
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        return true;
-    }
-
-    public void UpdateTimeFromPlayer(double time, double duration)
-    {
-        if (Math.Abs(time - _lastUiUpdateTime) < 0.1)
-            return;
-
-        _lastUiUpdateTime = time;
-
-        CurrentTime = time;
-        Duration    = duration;
     }
 }

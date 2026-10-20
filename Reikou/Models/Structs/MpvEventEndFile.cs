@@ -5,6 +5,9 @@ namespace Reikou.Models.Structs;
 [StructLayout(LayoutKind.Sequential)]
 public struct MpvEventEndFile
 {
-    public int reason;
-    public int error;
+    public int  reason;
+    public int  error;
+    public long playlistEntryId;
+    public long playlistInsertId;
+    public int  playlistInsertNumEntries;
 }

@@ -5,7 +5,6 @@ using Reikou.Models.Enums;
 using System;
 using System.IO;
 using System.Threading;
-using DanmakuPlaybackState = Banned.Avalonia.Danmaku.Models.Playback.PlaybackState;
 
 namespace Reikou.Services;
 
@@ -14,19 +13,23 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
     private readonly Lock       _gate = new();
     private readonly MpvService _service;
 
-    private DanmakuPlaybackState _state = DanmakuPlaybackState.Idle;
-    private PlaybackMediaId?     _currentMediaId;
+    private bool _awaitingStartFile;
 
+    private PlaybackMediaId? _currentMediaId;
+
+    private bool      _disposed;
     private TimeSpan? _duration;
-    private TimeSpan  _position;
-    private TimeSpan  _requestedSeekPosition;
+    private long      _endedRevision = -1;
+    private bool      _hasStartedCurrentMedia;
+    private bool      _isSeeking;
+    private bool      _loadedCurrentMedia;
+    private long      _mediaRevision;
 
-    private double _playbackRate;
-    private long   _mediaRevision;
-    private bool   _isSeeking;
-    private bool   _awaitingStartFile;
-    private bool   _hasStartedCurrentMedia;
-    private bool   _disposed;
+    private MpvPlaybackState _nativeState = MpvPlaybackState.Default;
+    private double           _playbackRate;
+    private TimeSpan         _position;
+    private TimeSpan         _requestedSeekPosition;
+    private PlaybackState    _state = PlaybackState.Idle;
 
     public MpvPlaybackSession(MpvService service)
     {
@@ -35,6 +38,41 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
 
         _service.PlaybackStateChanged += OnPlaybackStateChanged;
         _service.PlaybackEvent        += OnPlaybackEvent;
+    }
+
+    internal MpvPlaybackState NativeState
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _nativeState;
+            }
+        }
+    }
+
+    internal string? CurrentPath
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _currentMediaId?.Value;
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        lock (_gate)
+        {
+            if (_disposed) return;
+
+            _disposed = true;
+        }
+
+        _service.PlaybackStateChanged -= OnPlaybackStateChanged;
+        _service.PlaybackEvent        -= OnPlaybackEvent;
     }
 
     public event EventHandler<MediaChangedEventArgs>?         MediaChanged;
@@ -68,7 +106,7 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
         }
     }
 
-    public DanmakuPlaybackState State
+    public PlaybackState State
     {
         get
         {
@@ -123,6 +161,10 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
         }
     }
 
+    internal event EventHandler<SessionMediaEventArgs>? Loaded;
+    internal event EventHandler<SessionMediaEventArgs>? Ended;
+    internal event EventHandler?                        NativeStateChanged;
+
     public void OpenMedia(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -143,13 +185,15 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
 
             _currentMediaId = new PlaybackMediaId(Path.GetFullPath(filePath));
             _mediaRevision++;
-            _state                  = DanmakuPlaybackState.Opening;
+            _state                  = PlaybackState.Opening;
             _position               = TimeSpan.Zero;
             _duration               = null;
             _isSeeking              = false;
             _requestedSeekPosition  = TimeSpan.Zero;
             _awaitingStartFile      = true;
             _hasStartedCurrentMedia = false;
+            _loadedCurrentMedia     = false;
+            _nativeState            = MpvPlaybackState.Default;
 
             mediaChanged = new MediaChangedEventArgs(previousMedia, _currentMediaId, _mediaRevision);
             stateChanged = previousState == _state
@@ -164,20 +208,11 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
         }
 
         MediaChanged?.Invoke(this, mediaChanged);
-        if (durationChanged != null)
-        {
-            DurationChanged?.Invoke(this, durationChanged);
-        }
+        if (durationChanged != null) DurationChanged?.Invoke(this, durationChanged);
 
-        if (positionChanged != null)
-        {
-            PositionChanged?.Invoke(this, positionChanged);
-        }
+        if (positionChanged != null) PositionChanged?.Invoke(this, positionChanged);
 
-        if (stateChanged != null)
-        {
-            StateChanged?.Invoke(this, stateChanged);
-        }
+        if (stateChanged != null) StateChanged?.Invoke(this, stateChanged);
     }
 
     public void ClearMedia()
@@ -189,10 +224,7 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
 
         lock (_gate)
         {
-            if (_disposed)
-            {
-                return;
-            }
+            if (_disposed) return;
 
             var previousMedia    = _currentMediaId;
             var previousState    = _state;
@@ -201,13 +233,15 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
 
             _currentMediaId = null;
             _mediaRevision++;
-            _state                  = DanmakuPlaybackState.Idle;
+            _state                  = PlaybackState.Idle;
             _position               = TimeSpan.Zero;
             _duration               = null;
             _isSeeking              = false;
             _requestedSeekPosition  = TimeSpan.Zero;
             _awaitingStartFile      = false;
             _hasStartedCurrentMedia = false;
+            _loadedCurrentMedia     = false;
+            _nativeState            = MpvPlaybackState.Default;
 
             mediaChanged = new MediaChangedEventArgs(previousMedia, null, _mediaRevision);
             stateChanged = previousState == _state
@@ -222,20 +256,11 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
         }
 
         MediaChanged?.Invoke(this, mediaChanged);
-        if (durationChanged != null)
-        {
-            DurationChanged?.Invoke(this, durationChanged);
-        }
+        if (durationChanged != null) DurationChanged?.Invoke(this, durationChanged);
 
-        if (positionChanged != null)
-        {
-            PositionChanged?.Invoke(this, positionChanged);
-        }
+        if (positionChanged != null) PositionChanged?.Invoke(this, positionChanged);
 
-        if (stateChanged != null)
-        {
-            StateChanged?.Invoke(this, stateChanged);
-        }
+        if (stateChanged != null) StateChanged?.Invoke(this, stateChanged);
     }
 
     public void BeginSeek(TimeSpan requestedPosition)
@@ -244,10 +269,7 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
 
         lock (_gate)
         {
-            if (_disposed || _currentMediaId == null)
-            {
-                return;
-            }
+            if (_disposed || _currentMediaId == null) return;
 
             _requestedSeekPosition = ClampPosition(requestedPosition, _duration);
             if (!_isSeeking)
@@ -257,10 +279,7 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
             }
         }
 
-        if (seekStarted != null)
-        {
-            SeekStarted?.Invoke(this, seekStarted);
-        }
+        if (seekStarted != null) SeekStarted?.Invoke(this, seekStarted);
     }
 
     public void CancelSeek()
@@ -269,10 +288,7 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
 
         lock (_gate)
         {
-            if (_disposed || !_isSeeking)
-            {
-                return;
-            }
+            if (_disposed || !_isSeeking) return;
 
             _isSeeking    = false;
             seekCompleted = new SeekCompletedEventArgs(_requestedSeekPosition, _position, _mediaRevision);
@@ -288,13 +304,10 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
 
         lock (_gate)
         {
-            if (_disposed || _currentMediaId == null)
-            {
-                return;
-            }
+            if (_disposed || _currentMediaId == null) return;
 
             var previousState = _state;
-            _state     = DanmakuPlaybackState.Failed;
+            _state     = PlaybackState.Failed;
             _isSeeking = false;
 
             stateChanged = previousState == _state
@@ -303,12 +316,28 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
             playbackFailed = new PlaybackFailedEventArgs(_currentMediaId, _mediaRevision, message);
         }
 
-        if (stateChanged != null)
-        {
-            StateChanged?.Invoke(this, stateChanged);
-        }
+        if (stateChanged != null) StateChanged?.Invoke(this, stateChanged);
 
         PlaybackFailed?.Invoke(this, playbackFailed);
+    }
+
+    internal void StopCurrentMedia()
+    {
+        PlaybackStateChangedEventArgs? changed;
+        lock (_gate)
+        {
+            if (_disposed) return;
+            var previous = _state;
+            _endedRevision          = _mediaRevision;
+            _hasStartedCurrentMedia = false;
+            _isSeeking              = false;
+            _state                  = PlaybackState.Stopped;
+            changed = previous == _state
+                ? null
+                : new PlaybackStateChangedEventArgs(previous, _state, _position, _mediaRevision);
+        }
+
+        if (changed != null) StateChanged?.Invoke(this, changed);
     }
 
     private void OnPlaybackStateChanged(object? sender, MpvPlaybackStateChangedEventArgs e)
@@ -320,27 +349,21 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
 
         lock (_gate)
         {
-            if (_disposed)
-            {
-                return;
-            }
+            if (_disposed) return;
 
+            if (e.CurrentState.MediaRevision != _mediaRevision || !_hasStartedCurrentMedia) return;
+            _nativeState = e.CurrentState;
             var currentRate = SanitizeRate(e.CurrentState.Speed);
             if (Math.Abs(currentRate - _playbackRate) > 0.0001)
             {
                 var previousRate = _playbackRate;
                 _playbackRate = currentRate;
                 if (_currentMediaId != null)
-                {
                     rateChanged =
                         new PlaybackRateChangedEventArgs(previousRate, _playbackRate, _position, _mediaRevision);
-                }
             }
 
-            if (_currentMediaId == null || !_hasStartedCurrentMedia)
-            {
-                return;
-            }
+            if (_currentMediaId == null || !_hasStartedCurrentMedia) return;
 
             var currentDuration = ToDuration(e.CurrentState.Duration);
             if (_duration != currentDuration)
@@ -358,9 +381,17 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
                 positionChanged = new PositionChangedEventArgs(previousPosition, _position, _mediaRevision);
             }
 
-            if (_state is DanmakuPlaybackState.Ready or DanmakuPlaybackState.Playing or DanmakuPlaybackState.Paused)
+            if (_state == PlaybackState.Ended && !e.CurrentState.IsEof && _loadedCurrentMedia)
             {
-                var currentState = e.CurrentState.IsPaused ? DanmakuPlaybackState.Paused : DanmakuPlaybackState.Playing;
+                _endedRevision = -1;
+                var previousState = _state;
+                _state       = e.CurrentState.IsPaused ? PlaybackState.Paused : PlaybackState.Playing;
+                stateChanged = new PlaybackStateChangedEventArgs(previousState, _state, _position, _mediaRevision);
+            }
+
+            if (_state is PlaybackState.Ready or PlaybackState.Playing or PlaybackState.Paused)
+            {
+                var currentState = e.CurrentState.IsPaused ? PlaybackState.Paused : PlaybackState.Playing;
                 if (_state != currentState)
                 {
                     var previousState = _state;
@@ -370,29 +401,27 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
             }
         }
 
-        if (durationChanged != null)
-        {
-            DurationChanged?.Invoke(this, durationChanged);
-        }
+        if (durationChanged != null) DurationChanged?.Invoke(this, durationChanged);
 
-        if (positionChanged != null)
-        {
-            PositionChanged?.Invoke(this, positionChanged);
-        }
+        if (positionChanged != null) PositionChanged?.Invoke(this, positionChanged);
 
-        if (rateChanged != null)
-        {
-            PlaybackRateChanged?.Invoke(this, rateChanged);
-        }
+        if (rateChanged != null) PlaybackRateChanged?.Invoke(this, rateChanged);
 
-        if (stateChanged != null)
-        {
-            StateChanged?.Invoke(this, stateChanged);
-        }
+        if (stateChanged != null) StateChanged?.Invoke(this, stateChanged);
+        NativeStateChanged?.Invoke(this, EventArgs.Empty);
+        if (!e.PreviousState.IsEof && e.CurrentState.IsEof && _loadedCurrentMedia)
+            HandleEndFile(new MpvPlaybackEventArgs(MpvEventId.EndFile, e.CurrentState,
+                                                   MpvEndFileReason.Eof, mediaRevision : e.CurrentState.MediaRevision,
+                                                   playlistEntryId : e.CurrentState.PlaylistEntryId));
     }
 
     private void OnPlaybackEvent(object? sender, MpvPlaybackEventArgs e)
     {
+        lock (_gate)
+        {
+            if (_disposed || e.MediaRevision != _mediaRevision) return;
+        }
+
         switch (e.EventId)
         {
             case MpvEventId.StartFile :
@@ -419,49 +448,44 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
 
         lock (_gate)
         {
-            if (_disposed || _currentMediaId == null)
-            {
-                return;
-            }
+            if (_disposed || _currentMediaId == null) return;
 
             _awaitingStartFile      = false;
             _hasStartedCurrentMedia = true;
-            if (_state != DanmakuPlaybackState.Opening)
+            if (_state != PlaybackState.Opening)
             {
                 var previousState = _state;
-                _state       = DanmakuPlaybackState.Opening;
+                _state       = PlaybackState.Opening;
                 stateChanged = new PlaybackStateChangedEventArgs(previousState, _state, _position, _mediaRevision);
             }
         }
 
-        if (stateChanged != null)
-        {
-            StateChanged?.Invoke(this, stateChanged);
-        }
+        if (stateChanged != null) StateChanged?.Invoke(this, stateChanged);
     }
 
     private void HandleFileLoaded(MpvPlaybackState serviceState)
     {
         PlaybackStateChangedEventArgs? stateChanged;
+        SessionMediaEventArgs          loaded;
 
         lock (_gate)
         {
-            if (_disposed || _currentMediaId == null || _awaitingStartFile || !_hasStartedCurrentMedia)
-            {
-                return;
-            }
+            if (_disposed || _currentMediaId == null || _awaitingStartFile || !_hasStartedCurrentMedia) return;
 
+            _loadedCurrentMedia = true;
+            _nativeState        = serviceState;
+            _duration           = ToDuration(serviceState.Duration);
+            loaded              = new SessionMediaEventArgs(_currentMediaId.Value, _mediaRevision);
             var previousState = _state;
-            _state = serviceState.IsPaused ? DanmakuPlaybackState.Paused : DanmakuPlaybackState.Playing;
+            _state = serviceState.IsPaused ? PlaybackState.Paused : PlaybackState.Playing;
             stateChanged = previousState == _state
                 ? null
                 : new PlaybackStateChangedEventArgs(previousState, _state, _position, _mediaRevision);
         }
 
-        if (stateChanged != null)
-        {
-            StateChanged?.Invoke(this, stateChanged);
-        }
+        if (stateChanged != null) StateChanged?.Invoke(this, stateChanged);
+        Loaded?.Invoke(this, loaded);
+        NativeStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void HandleSeekStarted(MpvPlaybackState serviceState)
@@ -470,10 +494,7 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
 
         lock (_gate)
         {
-            if (_disposed || _currentMediaId == null || !_hasStartedCurrentMedia || _isSeeking)
-            {
-                return;
-            }
+            if (_disposed || _currentMediaId == null || !_hasStartedCurrentMedia || _isSeeking) return;
 
             _position              = ToPosition(serviceState.Position);
             _requestedSeekPosition = _position;
@@ -490,10 +511,7 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
 
         lock (_gate)
         {
-            if (_disposed || !_isSeeking)
-            {
-                return;
-            }
+            if (_disposed || !_isSeeking) return;
 
             _position     = ToPosition(serviceState.Position);
             _isSeeking    = false;
@@ -507,53 +525,53 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
     {
         PlaybackStateChangedEventArgs? stateChanged   = null;
         PlaybackFailedEventArgs?       playbackFailed = null;
+        SessionMediaEventArgs?         ended          = null;
 
         lock (_gate)
         {
-            if (_disposed || _currentMediaId == null || _awaitingStartFile || !_hasStartedCurrentMedia)
-            {
+            if (_disposed || _currentMediaId == null           || _awaitingStartFile || !_hasStartedCurrentMedia ||
+                e.MediaRevision              != _mediaRevision || _endedRevision == _mediaRevision)
                 return;
-            }
 
             var previousState = _state;
             _isSeeking = false;
+            if (e.EndReason != MpvEndFileReason.Redirect)
+            {
+                _endedRevision = _mediaRevision;
+                ended = new SessionMediaEventArgs(_currentMediaId.Value, _mediaRevision, e.EndReason, e.ErrorMessage);
+            }
 
-            if (e.EndReason == MpvEndFileReason.Redirect)
+            switch (e.EndReason)
             {
-                _state                  = DanmakuPlaybackState.Opening;
-                _awaitingStartFile      = true;
-                _hasStartedCurrentMedia = false;
-            }
-            else if (e.EndReason == MpvEndFileReason.Eof)
-            {
-                _state = DanmakuPlaybackState.Ended;
-            }
-            else if (e.EndReason == MpvEndFileReason.Error)
-            {
-                _state = DanmakuPlaybackState.Failed;
-                playbackFailed = new PlaybackFailedEventArgs(_currentMediaId, _mediaRevision,
-                                                             e.ErrorMessage ?? "mpv failed to play the current media.");
-            }
-            else
-            {
-                _state = DanmakuPlaybackState.Stopped;
+                case MpvEndFileReason.Redirect :
+                    _state                  = PlaybackState.Opening;
+                    _awaitingStartFile      = true;
+                    _hasStartedCurrentMedia = false;
+                    _loadedCurrentMedia     = false;
+                    _nativeState            = MpvPlaybackState.Default;
+                    break;
+                case MpvEndFileReason.Eof :
+                    _state = PlaybackState.Ended;
+                    break;
+                case MpvEndFileReason.Error :
+                    _state = PlaybackState.Failed;
+                    playbackFailed = new PlaybackFailedEventArgs(_currentMediaId, _mediaRevision,
+                                                                 e.ErrorMessage ??
+                                                                 "mpv failed to play the current media.");
+                    break;
+                default :
+                    _state = PlaybackState.Stopped;
+                    break;
             }
 
             if (previousState != _state)
-            {
                 stateChanged = new PlaybackStateChangedEventArgs(previousState, _state, _position, _mediaRevision);
-            }
         }
 
-        if (stateChanged != null)
-        {
-            StateChanged?.Invoke(this, stateChanged);
-        }
+        if (stateChanged != null) StateChanged?.Invoke(this, stateChanged);
 
-        if (playbackFailed != null)
-        {
-            PlaybackFailed?.Invoke(this, playbackFailed);
-        }
+        if (playbackFailed != null) PlaybackFailed?.Invoke(this, playbackFailed);
+        if (ended          != null) Ended?.Invoke(this, ended);
     }
 
     private static TimeSpan ToPosition(double seconds) =>
@@ -571,21 +589,5 @@ internal sealed class MpvPlaybackSession : IPlaybackSession, IDisposable
     {
         var maximum = duration ?? TimeSpan.MaxValue;
         return position < TimeSpan.Zero ? TimeSpan.Zero : position > maximum ? maximum : position;
-    }
-
-    public void Dispose()
-    {
-        lock (_gate)
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            _disposed = true;
-        }
-
-        _service.PlaybackStateChanged -= OnPlaybackStateChanged;
-        _service.PlaybackEvent        -= OnPlaybackEvent;
     }
 }

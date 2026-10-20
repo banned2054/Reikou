@@ -5,6 +5,7 @@ using Reikou.Models.Settings;
 using Reikou.Models.Structs;
 using Reikou.Native;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -30,22 +31,33 @@ public class MpvService : IDisposable
     private const ulong AudioDelayObserverId             = 13;
     private const ulong SubtitleVisibilityObserverId     = 14;
     private const ulong HardwareDecoderObserverId        = 15;
+    private const ulong EofObserverId                    = 16;
+    private const ulong BufferingObserverId              = 17;
+    private const ulong SeekableObserverId               = 18;
+    private const ulong CacheDurationObserverId          = 19;
 
-    private readonly ILogger<MpvService> _logger;
+    private readonly Dictionary<long, long> _entryRevisions = new();
+    private readonly ILogger<MpvService>    _logger;
 
-    private nint _handle;
-    private nint _renderContext;
-    private bool _disposed;
+    private readonly Lock         _mediaGate     = new();
+    private readonly List<Action> _notifications = [];
 
-    private MpvPlaybackState         _playbackState = MpvPlaybackState.Default;
+    private long? _activeEntryId;
+    private bool  _disposed;
+
     private CancellationTokenSource? _eventLoopCts;
-    private Task?                    _eventLoopTask;
+
+    private Task? _eventLoopTask;
 
     // 防止委托被 GC 回收
     private LibMpv.MpvGetProcAddressFn? _getProcAddressDelegate;
+    private nint                        _handle;
+    private MpvPlaybackState            _playbackState = MpvPlaybackState.Default;
+    private nint                        _renderContext;
     private LibMpv.MpvRenderUpdateFn?   _updateCallbackDelegate;
 
-    public MpvService(ILogger<MpvService> logger, MpvInitializationOptions? initializationOptions = null)
+    public MpvService(ILogger<MpvService> logger, MpvInitializationOptions? initializationOptions = null,
+                      IReadOnlyDictionary<string, string>? optionOverrides = null)
     {
         _logger = logger;
         _handle = LibMpv.Create();
@@ -55,12 +67,12 @@ public class MpvService : IDisposable
         try
         {
             ApplyInitializationOptions(initializationOptions ?? MpvInitializationOptions.From(new AppSettings()));
+            if (optionOverrides != null)
+                foreach (var option in optionOverrides)
+                    SetInitializationOption(option.Key, option.Value);
 
             var status = LibMpv.Initialize(_handle);
-            if (status < 0)
-            {
-                throw new InvalidOperationException($"Failed to initialize mpv: {LibMpv.GetError(status)}");
-            }
+            if (status < 0) throw new InvalidOperationException($"Failed to initialize mpv: {LibMpv.GetError(status)}");
         }
         catch
         {
@@ -73,6 +85,41 @@ public class MpvService : IDisposable
     }
 
     public MpvPlaybackState PlaybackState => Volatile.Read(ref _playbackState);
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        _disposed = true;
+
+        _eventLoopCts?.Cancel();
+        try
+        {
+            _eventLoopTask?.Wait(TimeSpan.FromMilliseconds(250));
+        }
+        catch (AggregateException) when (_eventLoopCts?.IsCancellationRequested == true)
+        {
+            // Expected while shutting down the event loop.
+        }
+
+        _eventLoopCts?.Dispose();
+        _eventLoopCts  = null;
+        _eventLoopTask = null;
+
+        if (_renderContext != IntPtr.Zero)
+        {
+            LibMpv.RenderContextFree(_renderContext);
+            _renderContext = IntPtr.Zero;
+        }
+
+        if (_handle != IntPtr.Zero)
+        {
+            LibMpv.Destroy(_handle);
+            _handle = IntPtr.Zero;
+        }
+
+        GC.SuppressFinalize(this);
+    }
 
     public event EventHandler<MpvPlaybackStateChangedEventArgs>? PlaybackStateChanged;
     public event EventHandler<MpvPlaybackEventArgs>?             PlaybackEvent;
@@ -113,10 +160,7 @@ public class MpvService : IDisposable
             };
 
             var err = LibMpv.RenderContextCreate(out _renderContext, _handle, renderParams);
-            if (err < 0)
-            {
-                throw new Exception($"Failed to create mpv render context: {LibMpv.GetError(err)}");
-            }
+            if (err < 0) throw new Exception($"Failed to create mpv render context: {LibMpv.GetError(err)}");
         }
         finally
         {
@@ -129,12 +173,10 @@ public class MpvService : IDisposable
         LibMpv.RenderContextSetUpdateCallback(_renderContext, _updateCallbackDelegate, nint.Zero);
     }
 
-    public MpvRenderUpdateFlag UpdateRenderState()
-    {
-        return _disposed || _renderContext == nint.Zero
+    public MpvRenderUpdateFlag UpdateRenderState() =>
+        _disposed || _renderContext == nint.Zero
             ? MpvRenderUpdateFlag.None
             : LibMpv.RenderContextUpdate(_renderContext);
-    }
 
     public void Render(int fbo, int width, int height)
     {
@@ -148,7 +190,7 @@ public class MpvService : IDisposable
             internalFormat = 0
         };
 
-        int flipY = 1;
+        var flipY = 1;
 
         // 这里原版使用了 unsafe + stackalloc，这部分通常是安全的，保留原版写法
         unsafe
@@ -176,6 +218,32 @@ public class MpvService : IDisposable
         if (err < 0)
             HandleError(err, $"Command failed: {string.Join(" | ", arguments)}");
         return err;
+    }
+
+    public MpvStatus LoadMedia(string path, long mediaRevision)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        lock (_mediaGate)
+        {
+            var result = Command("loadfile", path, "replace");
+            if (result < 0) return result;
+            // loadfile replace installs the single managed-list item synchronously.
+            // Register before the event loop can consume START_FILE.
+            var identityStatus = LibMpv.GetProperty(_handle, "playlist/0/id", MpvFormat.Long, out long id);
+            if (identityStatus >= 0)
+            {
+                _entryRevisions[id] = mediaRevision;
+            }
+            else
+            {
+                _logger.LogWarning("Cannot bind mpv playlist identity for revision {Revision}: {Error}",
+                                   mediaRevision, LibMpv.GetError(identityStatus));
+                Command("stop");
+                return identityStatus;
+            }
+
+            return result;
+        }
     }
 
     public T? GetProperty<T>(string name)
@@ -286,29 +354,23 @@ public class MpvService : IDisposable
         SetInitializationOption("osd-bar", "no");
 
         foreach (var option in MpvSettingsMapper.GetOptions(options.Settings))
-        {
             TrySetInitializationOption(option.Key, option.Value);
-        }
     }
 
     private void SetInitializationOption(string name, string value)
     {
         var status = (MpvStatus)LibMpv.SetOptionString(_handle, name, value);
         if (status < 0)
-        {
             throw
                 new InvalidOperationException($"Failed to set mpv option '{name}={value}': {LibMpv.GetError(status)}");
-        }
     }
 
     private void TrySetInitializationOption(string name, string value)
     {
         var status = (MpvStatus)LibMpv.SetOptionString(_handle, name, value);
         if (status < 0)
-        {
             _logger.LogWarning("Ignoring unsupported mpv setting {OptionName}={OptionValue}: {Error}", name, value,
                                LibMpv.GetError(status));
-        }
     }
 
     private void StartPlaybackStateObservation()
@@ -328,6 +390,10 @@ public class MpvService : IDisposable
         ObserveProperty(AudioDelayObserverId, "audio-delay", MpvFormat.Double);
         ObserveProperty(SubtitleVisibilityObserverId, "sub-visibility", MpvFormat.Flag);
         ObserveProperty(HardwareDecoderObserverId, "hwdec-current", MpvFormat.String);
+        ObserveProperty(EofObserverId, "eof-reached", MpvFormat.Flag);
+        ObserveProperty(BufferingObserverId, "paused-for-cache", MpvFormat.Flag);
+        ObserveProperty(SeekableObserverId, "seekable", MpvFormat.Flag);
+        ObserveProperty(CacheDurationObserverId, "demuxer-cache-duration", MpvFormat.Double);
 
         var eventLoopCts = new CancellationTokenSource();
         _eventLoopCts  = eventLoopCts;
@@ -337,10 +403,7 @@ public class MpvService : IDisposable
     private void ObserveProperty(ulong observerId, string name, MpvFormat format)
     {
         var status = LibMpv.ObserveProperty(_handle, observerId, name, format);
-        if (status < 0)
-        {
-            HandleError(status, $"ObserveProperty {name}");
-        }
+        if (status < 0) HandleError(status, $"ObserveProperty {name}");
     }
 
     private void ProcessEvents(CancellationToken cancellationToken)
@@ -350,35 +413,49 @@ public class MpvService : IDisposable
             while (!cancellationToken.IsCancellationRequested)
             {
                 var eventPointer = LibMpv.WaitEvent(_handle, 0.05);
-                if (eventPointer == nint.Zero)
-                {
-                    continue;
-                }
+                if (eventPointer == nint.Zero) continue;
 
                 var mpvEvent = Marshal.PtrToStructure<MpvEvent>(eventPointer);
-                switch (mpvEvent.eventId)
+                lock (_mediaGate)
                 {
-                    case MpvEventId.None :
-                        break;
-                    case MpvEventId.PropertyChange :
-                        ApplyObservedProperty(mpvEvent);
-                        break;
-                    case MpvEventId.StartFile :
-                        ResetTracksForNewMedia();
-                        PublishPlaybackEvent(mpvEvent);
-                        break;
-                    case MpvEventId.FileLoaded :
-                    case MpvEventId.EndFile :
-                    case MpvEventId.Seek :
-                    case MpvEventId.PlaybackRestart :
-                        PublishPlaybackEvent(mpvEvent);
-                        break;
-                    case MpvEventId.QueueOverflow :
-                        _logger.LogWarning("mpv event queue overflowed; playback state may be temporarily stale.");
-                        break;
-                    case MpvEventId.Shutdown :
-                        return;
+                    switch (mpvEvent.eventId)
+                    {
+                        case MpvEventId.None :
+                            break;
+                        case MpvEventId.PropertyChange :
+                            ApplyObservedProperty(mpvEvent);
+                            break;
+                        case MpvEventId.StartFile :
+                            _activeEntryId = mpvEvent.data == nint.Zero ? null : Marshal.ReadInt64(mpvEvent.data);
+                            ResetTracksForNewMedia();
+                            PublishPlaybackEvent(mpvEvent);
+                            break;
+                        case MpvEventId.FileLoaded :
+                        case MpvEventId.EndFile :
+                        case MpvEventId.Seek :
+                        case MpvEventId.PlaybackRestart :
+                            PublishPlaybackEvent(mpvEvent);
+                            break;
+                        case MpvEventId.QueueOverflow :
+                            _logger.LogWarning("mpv event queue overflowed; playback state may be temporarily stale.");
+                            break;
+                        case MpvEventId.Shutdown :
+                            return;
+                    }
                 }
+
+                // Never invoke application callbacks while holding the native identity lock.
+                foreach (var notification in _notifications)
+                    try
+                    {
+                        notification();
+                    }
+                    catch (Exception exception)
+                    {
+                        _logger.LogError(exception, "Playback notification failed.");
+                    }
+
+                _notifications.Clear();
             }
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
@@ -428,44 +505,39 @@ public class MpvService : IDisposable
             SubtitleTrackObserverId => ApplySubtitleTrackSelection(currentState, ReadTrackId(property)),
             SecondarySubtitleTrackObserverId =>
                 ApplySecondarySubtitleTrackSelection(currentState, ReadTrackId(property)),
-            SubtitleDelayObserverId      => currentState with { SubtitleDelay = ReadFiniteDouble(property) },
-            AudioDelayObserverId         => currentState with { AudioDelay = ReadFiniteDouble(property) },
+            SubtitleDelayObserverId => currentState with { SubtitleDelay = ReadFiniteDouble(property) },
+            AudioDelayObserverId => currentState with { AudioDelay = ReadFiniteDouble(property) },
             SubtitleVisibilityObserverId => currentState with { AreSubtitlesVisible = ReadFlag(property) ?? true },
-            HardwareDecoderObserverId    => currentState with { HardwareDecoder = ReadString(property) },
-            _                            => currentState
+            HardwareDecoderObserverId => currentState with { HardwareDecoder = ReadString(property) },
+            EofObserverId => currentState with { IsEof = ReadFlag(property) ?? false },
+            BufferingObserverId => currentState with { IsBuffering = ReadFlag(property) ?? false },
+            SeekableObserverId => currentState with { IsSeekable = ReadFlag(property) ?? false },
+            CacheDurationObserverId => currentState with { CacheDuration = Math.Max(0, ReadFiniteDouble(property)) },
+            _ => currentState
         };
 
-        if (updatedState == currentState)
-        {
-            return;
-        }
+        if (updatedState == currentState) return;
 
         Volatile.Write(ref _playbackState, updatedState);
-        PlaybackStateChanged?.Invoke(
-                                     this,
-                                     new MpvPlaybackStateChangedEventArgs(currentState, updatedState));
+        _notifications.Add(() => NotifySubscribers(PlaybackStateChanged,
+                                                   new MpvPlaybackStateChangedEventArgs(currentState, updatedState)));
     }
 
     private void ResetTracksForNewMedia()
     {
         var currentState = Volatile.Read(ref _playbackState);
-        if (currentState.Tracks.IsEmpty                   &&
-            currentState.AudioTrackId             == null &&
-            currentState.SubtitleTrackId          == null &&
-            currentState.SecondarySubtitleTrackId == null &&
-            currentState.HardwareDecoder          == null)
-        {
-            return;
-        }
-
         var updatedState = currentState with
         {
             Tracks = [], AudioTrackId = null, SubtitleTrackId = null, SecondarySubtitleTrackId = null,
-            HardwareDecoder = null
+            HardwareDecoder = null, Duration = 0, Position = 0, IsEof = false,
+            IsBuffering = false, IsSeekable = false, CacheDuration = 0,
+            PlaylistEntryId = _activeEntryId,
+            MediaRevision = _activeEntryId is { } id && _entryRevisions.TryGetValue(id, out var revision) ? revision : 0
         };
 
         Volatile.Write(ref _playbackState, updatedState);
-        PlaybackStateChanged?.Invoke(this, new MpvPlaybackStateChangedEventArgs(currentState, updatedState));
+        _notifications.Add(() => NotifySubscribers(PlaybackStateChanged,
+                                                   new MpvPlaybackStateChangedEventArgs(currentState, updatedState)));
     }
 
     private void PublishPlaybackEvent(MpvEvent mpvEvent)
@@ -473,14 +545,13 @@ public class MpvService : IDisposable
         MpvEndFileReason? endReason    = null;
         MpvStatus?        error        = null;
         string?           errorMessage = null;
+        var               entryId      = _activeEntryId;
 
         if (mpvEvent.eventId == MpvEventId.EndFile && mpvEvent.data != nint.Zero)
         {
             var endFile = Marshal.PtrToStructure<MpvEventEndFile>(mpvEvent.data);
-            if (Enum.IsDefined((MpvEndFileReason)endFile.reason))
-            {
-                endReason = (MpvEndFileReason)endFile.reason;
-            }
+            entryId = endFile.playlistEntryId;
+            if (Enum.IsDefined((MpvEndFileReason)endFile.reason)) endReason = (MpvEndFileReason)endFile.reason;
 
             if (endFile.error < 0)
             {
@@ -489,9 +560,29 @@ public class MpvService : IDisposable
             }
         }
 
-        PlaybackEvent?.Invoke(this,
-                              new MpvPlaybackEventArgs(mpvEvent.eventId, PlaybackState, endReason, error,
-                                                       errorMessage));
+        var args = new MpvPlaybackEventArgs(mpvEvent.eventId, PlaybackState, endReason, error,
+                                            errorMessage,
+                                            entryId is { } id && _entryRevisions.TryGetValue(id, out var revision)
+                                                ? revision
+                                                : 0, entryId);
+        _notifications.Add(() => NotifySubscribers(PlaybackEvent, args));
+        if (mpvEvent.eventId != MpvEventId.EndFile || entryId is not { } endedId) return;
+        _entryRevisions.Remove(endedId);
+        if (_activeEntryId == endedId) _activeEntryId = null;
+    }
+
+    private void NotifySubscribers<T>(EventHandler<T>? handlers, T args) where T : EventArgs
+    {
+        if (handlers == null) return;
+        foreach (EventHandler<T> handler in handlers.GetInvocationList())
+            try
+            {
+                handler(this, args);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Playback subscriber failed.");
+            }
     }
 
     private static double? ReadDouble(MpvEventProperty property) =>
@@ -510,10 +601,7 @@ public class MpvService : IDisposable
 
     private static string? ReadString(MpvEventProperty property)
     {
-        if (property.format != MpvFormat.String || property.data == nint.Zero)
-        {
-            return null;
-        }
+        if (property.format != MpvFormat.String || property.data == nint.Zero) return null;
 
         var valuePointer = Marshal.ReadIntPtr(property.data);
         return valuePointer == nint.Zero ? null : Marshal.PtrToStringUTF8(valuePointer);
@@ -531,44 +619,35 @@ public class MpvService : IDisposable
         ReadDouble(property) is { } value && double.IsFinite(value) ? value : 0;
 
 
-    private static MpvPlaybackState ApplyAudioTrackSelection(MpvPlaybackState state, long? trackId)
-    {
-        return state with
+    private static MpvPlaybackState ApplyAudioTrackSelection(MpvPlaybackState state, long? trackId) =>
+        state with
         {
             Tracks = PrepareTracks(state.Tracks, state.Tracks, trackId, state.SubtitleTrackId,
                                    state.SecondarySubtitleTrackId),
             AudioTrackId = trackId
         };
-    }
 
-    private static MpvPlaybackState ApplySubtitleTrackSelection(MpvPlaybackState state, long? trackId)
-    {
-        return state with
+    private static MpvPlaybackState ApplySubtitleTrackSelection(MpvPlaybackState state, long? trackId) =>
+        state with
         {
             Tracks = PrepareTracks(state.Tracks, state.Tracks, state.AudioTrackId, trackId,
                                    state.SecondarySubtitleTrackId),
             SubtitleTrackId = trackId
         };
-    }
 
-    private static MpvPlaybackState ApplySecondarySubtitleTrackSelection(MpvPlaybackState state, long? trackId)
-    {
-        return state with
+    private static MpvPlaybackState ApplySecondarySubtitleTrackSelection(MpvPlaybackState state, long? trackId) =>
+        state with
         {
             Tracks = PrepareTracks(state.Tracks, state.Tracks, state.AudioTrackId, state.SubtitleTrackId, trackId),
             SecondarySubtitleTrackId = trackId
         };
-    }
 
     private static ImmutableArray<MediaTrackInfo> PrepareTracks(ImmutableArray<MediaTrackInfo> currentTracks,
                                                                 ImmutableArray<MediaTrackInfo> candidateTracks,
                                                                 long? audioTrackId, long? subtitleTrackId,
                                                                 long? secondarySubtitleTrackId)
     {
-        if (candidateTracks.IsEmpty)
-        {
-            return currentTracks.IsEmpty ? currentTracks : [];
-        }
+        if (candidateTracks.IsEmpty) return currentTracks.IsEmpty ? currentTracks : [];
 
         var builder = ImmutableArray.CreateBuilder<MediaTrackInfo>(candidateTracks.Length);
         foreach (var track in candidateTracks)
@@ -605,40 +684,5 @@ public class MpvService : IDisposable
     private void CheckDisposed()
     {
         if (_disposed) throw new ObjectDisposedException(nameof(MpvService));
-    }
-
-    public void Dispose()
-    {
-        if (_disposed) return;
-
-        _disposed = true;
-
-        _eventLoopCts?.Cancel();
-        try
-        {
-            _eventLoopTask?.Wait(TimeSpan.FromMilliseconds(250));
-        }
-        catch (AggregateException) when (_eventLoopCts?.IsCancellationRequested == true)
-        {
-            // Expected while shutting down the event loop.
-        }
-
-        _eventLoopCts?.Dispose();
-        _eventLoopCts  = null;
-        _eventLoopTask = null;
-
-        if (_renderContext != IntPtr.Zero)
-        {
-            LibMpv.RenderContextFree(_renderContext);
-            _renderContext = IntPtr.Zero;
-        }
-
-        if (_handle != IntPtr.Zero)
-        {
-            LibMpv.Destroy(_handle);
-            _handle = IntPtr.Zero;
-        }
-
-        GC.SuppressFinalize(this);
     }
 }

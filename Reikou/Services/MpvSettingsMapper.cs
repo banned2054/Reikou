@@ -24,11 +24,14 @@ internal static class MpvSettingsMapper
         var color      = settings.Color;
 
         yield return Pair("speed", Number(playback.DefaultSpeed));
-        yield return Pair("save-position-on-quit", Flag(playback.RememberPosition));
+        // The managed history is the sole owner of resume position.
+        yield return Pair("save-position-on-quit", "no");
+        yield return Pair("resume-playback", "no");
+        yield return Pair("write-filename-in-watch-later-config", "no");
         yield return Pair("keep-open", Flag(playback.KeepOpen));
         yield return Pair("keep-open-pause", Flag(playback.KeepOpenPaused));
         yield return Pair("loop-file", playback.LoopFile ? "inf" : "no");
-        yield return Pair("loop-playlist", playback.LoopPlaylist ? "inf" : "no");
+        yield return Pair("loop-playlist", "no");
         yield return Pair("hr-seek", Flag(playback.HighResolutionSeeking));
         yield return Pair("cache", Flag(playback.CacheEnabled));
         yield return Pair("demuxer-max-bytes", $"{playback.CacheSizeMiB}MiB");
@@ -48,20 +51,11 @@ internal static class MpvSettingsMapper
         yield return Pair("hdr-compute-peak", Flag(video.HdrComputePeak));
         yield return Pair("allow-delayed-peak-detect", Flag(video.AllowDelayedPeakDetect));
 
-        if (audio.OutputDriver != AudioOutputDriver.Automatic)
-        {
-            yield return Pair("ao", AudioOutput(audio.OutputDriver));
-        }
+        if (audio.OutputDriver != AudioOutputDriver.Automatic) yield return Pair("ao", AudioOutput(audio.OutputDriver));
 
-        if (!string.IsNullOrWhiteSpace(audio.Device))
-        {
-            yield return Pair("audio-device", audio.Device);
-        }
+        if (!string.IsNullOrWhiteSpace(audio.Device)) yield return Pair("audio-device", audio.Device);
 
-        if (!string.IsNullOrWhiteSpace(audio.PreferredLanguages))
-        {
-            yield return Pair("alang", audio.PreferredLanguages);
-        }
+        if (!string.IsNullOrWhiteSpace(audio.PreferredLanguages)) yield return Pair("alang", audio.PreferredLanguages);
 
         yield return Pair("audio-file-auto", ExternalMatch(audio.ExternalFileMatch));
         yield return Pair("volume", Number(audio.StartupVolume));
@@ -69,15 +63,10 @@ internal static class MpvSettingsMapper
         yield return Pair("audio-delay", Number(audio.DelaySeconds));
 
         if (!string.IsNullOrWhiteSpace(subtitle.PreferredLanguages))
-        {
             yield return Pair("slang", subtitle.PreferredLanguages);
-        }
 
         yield return Pair("sub-auto", ExternalMatch(subtitle.AutoLoad));
-        if (!string.IsNullOrWhiteSpace(subtitle.SearchPaths))
-        {
-            yield return Pair("sub-file-paths", subtitle.SearchPaths);
-        }
+        if (!string.IsNullOrWhiteSpace(subtitle.SearchPaths)) yield return Pair("sub-file-paths", subtitle.SearchPaths);
 
         yield return Pair("blend-subtitles", SubtitleBlend(subtitle.BlendMode));
         yield return Pair("sub-font", subtitle.FontFamily);
@@ -102,10 +91,7 @@ internal static class MpvSettingsMapper
         yield return Pair("screenshot-jpeg-source-chroma", Flag(screenshot.JpegSourceChroma));
 
         yield return Pair("icc-profile-auto", Flag(color.IccProfileAuto));
-        if (!string.IsNullOrWhiteSpace(color.IccProfilePath))
-        {
-            yield return Pair("icc-profile", color.IccProfilePath);
-        }
+        if (!string.IsNullOrWhiteSpace(color.IccProfilePath)) yield return Pair("icc-profile", color.IccProfilePath);
 
         yield return Pair("icc-3dlut-size", $"{color.IccLutSize}x{color.IccLutSize}x{color.IccLutSize}");
         yield return Pair("icc-intent", color.IccIntent.ToString(CultureInfo.InvariantCulture));

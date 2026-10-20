@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json.Serialization;
 using static Reikou.Models.Settings.SettingsNormalization;
@@ -269,34 +270,45 @@ public sealed record ColorManagementSettings
     };
 }
 
-public sealed record DanmakuSettings
+public sealed record DanmakuSettings(bool                   Enabled           = true,
+                                     double                 Opacity           = 1,
+                                     double                 FontScale         = 1,
+                                     double                 Speed             = 1,
+                                     int                    Density           = 100,
+                                     double                 DelaySeconds      = 0,
+                                     IReadOnlyList<string>? BlockedKeywords   = null,
+                                     bool                   ShowScroll        = true,
+                                     bool                   ShowTop           = true,
+                                     bool                   ShowBottom        = true,
+                                     int                    MaxCountPerSecond = 0)
 {
-    public bool   Enabled   { get; init; } = true;
-    public double Opacity   { get; init; } = 1;
-    public double FontScale { get; init; } = 1;
-    public double Speed     { get; init; } = 1;
-    public int    Density   { get; init; } = 100;
-
     public DanmakuSettings Normalize() => this with
     {
         Opacity = ClampFinite(Opacity, 0.1, 1, 1),
         FontScale = ClampFinite(FontScale, 0.5, 2, 1),
         Speed = ClampFinite(Speed, 0.5, 2, 1),
-        Density = Math.Clamp(Density, 10, 100)
+        Density = Math.Clamp(Density, 10, 100),
+        DelaySeconds = ClampFinite(DelaySeconds, -600, 600, 0),
+        BlockedKeywords = NormalizeKeywords(BlockedKeywords),
+        ShowScroll = ShowScroll,
+        ShowTop = ShowTop,
+        ShowBottom = ShowBottom,
+        MaxCountPerSecond = (int)Math.Round(ClampFinite(MaxCountPerSecond, 0, 1000, 0))
     };
 }
 
 public sealed record InterfaceSettings
 {
-    public ApplicationThemeMode Theme             { get; init; } = ApplicationThemeMode.System;
-    public double               OverlayHideDelay  { get; init; } = 1;
-    public bool                 RememberWindow    { get; init; } = true;
-    public bool                 StartInFullscreen { get; init; }
-    public int?                 WindowX           { get; init; }
-    public int?                 WindowY           { get; init; }
-    public double?              WindowWidth       { get; init; }
-    public double?              WindowHeight      { get; init; }
-    public bool                 WindowMaximized   { get; init; }
+    public ApplicationThemeMode Theme { get; init; } = ApplicationThemeMode.System;
+
+    public double  OverlayHideDelay  { get; init; } = 1;
+    public bool    RememberWindow    { get; init; } = true;
+    public bool    StartInFullscreen { get; init; }
+    public int?    WindowX           { get; init; }
+    public int?    WindowY           { get; init; }
+    public double? WindowWidth       { get; init; }
+    public double? WindowHeight      { get; init; }
+    public bool    WindowMaximized   { get; init; }
 
     public InterfaceSettings Normalize() => this with
     {
@@ -328,14 +340,14 @@ public sealed record AppSettings
     public AppSettings Normalize() => this with
     {
         SchemaVersion = CurrentSchemaVersion,
-        Playback = (Playback).Normalize(),
-        Video = (Video).Normalize(),
-        Audio = (Audio).Normalize(),
-        Subtitle = (Subtitle).Normalize(),
-        Screenshot = (Screenshot).Normalize(),
-        Color = (Color).Normalize(),
-        Danmaku = (Danmaku).Normalize(),
-        Interface = (Interface).Normalize()
+        Playback = (Playback     ?? new PlaybackSettings()).Normalize(),
+        Video = (Video           ?? new VideoSettings()).Normalize(),
+        Audio = (Audio           ?? new AudioSettings()).Normalize(),
+        Subtitle = (Subtitle     ?? new SubtitleSettings()).Normalize(),
+        Screenshot = (Screenshot ?? new ScreenshotSettings()).Normalize(),
+        Color = (Color           ?? new ColorManagementSettings()).Normalize(),
+        Danmaku = (Danmaku       ?? new DanmakuSettings()).Normalize(),
+        Interface = (Interface   ?? new InterfaceSettings()).Normalize()
     };
 }
 
@@ -349,26 +361,35 @@ internal static class SettingsNormalization
 
     public static string NormalizeColor(string? value, string fallback)
     {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return fallback;
-        }
+        if (string.IsNullOrWhiteSpace(value)) return fallback;
 
         var candidate = value.Trim();
-        if (candidate.Length is not (7 or 9) || candidate[0] != '#')
-        {
-            return fallback;
-        }
+        if (candidate.Length is not (7 or 9) || candidate[0] != '#') return fallback;
 
         for (var index = 1; index < candidate.Length; index++)
-        {
             if (!Uri.IsHexDigit(candidate[index]))
-            {
                 return fallback;
-            }
-        }
 
         return candidate.ToUpperInvariant();
+    }
+
+    public static IReadOnlyList<string> NormalizeKeywords(IReadOnlyList<string>? keywords)
+    {
+        if (keywords is not { Count: > 0 }) return [];
+
+        var seen   = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<string>();
+        foreach (var keyword in keywords)
+        {
+            if (result.Count >= 1000) break;
+
+            var trimmed = keyword?.Trim();
+            if (string.IsNullOrEmpty(trimmed) || !seen.Add(trimmed)) continue;
+
+            result.Add(trimmed);
+        }
+
+        return result;
     }
 }
 

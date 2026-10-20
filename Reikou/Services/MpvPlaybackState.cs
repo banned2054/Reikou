@@ -21,23 +21,28 @@ public sealed record MpvPlaybackState(
     bool                           AreSubtitlesVisible,
     string?                        HardwareDecoder)
 {
-    public static MpvPlaybackState Default { get; } = new(
-                                                          Duration : 0,
-                                                          Position : 0,
-                                                          IsPaused : true,
-                                                          Speed : 1,
-                                                          Volume : 100,
-                                                          VideoWidth : 0,
-                                                          VideoHeight : 0,
-                                                          Tracks : [],
-                                                          AudioTrackId : null,
-                                                          SubtitleTrackId : null,
-                                                          SecondarySubtitleTrackId : null,
-                                                          SubtitleDelay : 0,
-                                                          AudioDelay : 0,
-                                                          AreSubtitlesVisible : true,
-                                                          HardwareDecoder : null
-                                                         );
+    public static MpvPlaybackState Default { get; } = new(0,
+                                                          0,
+                                                          true,
+                                                          1,
+                                                          100,
+                                                          0,
+                                                          0,
+                                                          [],
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          0,
+                                                          0,
+                                                          true,
+                                                          null);
+
+    public long   MediaRevision   { get; init; }
+    public long?  PlaylistEntryId { get; init; }
+    public bool   IsBuffering     { get; init; }
+    public bool   IsSeekable      { get; init; }
+    public bool   IsEof           { get; init; }
+    public double CacheDuration   { get; init; }
 
     public double VideoAspectRatio => VideoWidth > 0 && VideoHeight > 0 ? (double)VideoWidth / VideoHeight : 0;
 
@@ -50,18 +55,11 @@ public sealed record MpvPlaybackState(
 
     private MediaTrackInfo? FindTrack(long? trackId, MediaTrackType type)
     {
-        if (trackId == null)
-        {
-            return null;
-        }
+        if (trackId == null) return null;
 
         foreach (var track in Tracks)
-        {
             if (track.Id == trackId && track.Type == type)
-            {
                 return track;
-            }
-        }
 
         return null;
     }
