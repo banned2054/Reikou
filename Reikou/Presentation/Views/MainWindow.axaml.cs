@@ -14,7 +14,7 @@ using Reikou.Services;
 using Reikou.Services.Danmaku;
 using Reikou.Utils;
 using Reikou.ViewModels;
-using Reikou.Views.Components;
+using Reikou.Presentation.Views.Player;
 using Serilog;
 using System;
 using System.ComponentModel;
@@ -24,7 +24,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Reikou.Views.Pages;
+namespace Reikou.Presentation.Views;
 
 public partial class MainWindow : Window
 {

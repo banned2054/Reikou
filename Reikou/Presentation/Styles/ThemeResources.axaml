@@ -1,0 +1,18 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- 主题语义键：视图与分区样式一律以语义键引用颜色，不在使用处写死十六进制值。
+         当前为深色单档；引入 Light 主题时按 ResourceDictionary.ThemeDictionaries 拆分。 -->
+
+    <Color x:Key="AccentColor">#3B82F6</Color>
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+
+    <Color x:Key="SettingsBackgroundColor">#17191F</Color>
+    <SolidColorBrush x:Key="SettingsBackgroundBrush" Color="{StaticResource SettingsBackgroundColor}" />
+    <Color x:Key="SettingsSidebarColor">#12141A</Color>
+    <SolidColorBrush x:Key="SettingsSidebarBrush" Color="{StaticResource SettingsSidebarColor}" />
+
+    <Color x:Key="PopupPanelBackgroundColor">#E61A1A1A</Color>
+    <SolidColorBrush x:Key="PopupPanelBackgroundBrush" Color="{StaticResource PopupPanelBackgroundColor}" />
+    <Color x:Key="PopupPanelBorderColor">#33FFFFFF</Color>
+    <SolidColorBrush x:Key="PopupPanelBorderBrush" Color="{StaticResource PopupPanelBorderColor}" />
+</ResourceDictionary>

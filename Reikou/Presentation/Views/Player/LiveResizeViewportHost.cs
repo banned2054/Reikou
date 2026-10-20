@@ -6,7 +6,7 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace Reikou.Views.Controls;
+namespace Reikou.Presentation.Views.Player;
 
 /// <summary>
 ///     Keeps its child at a stable logical size while the host is being resized and

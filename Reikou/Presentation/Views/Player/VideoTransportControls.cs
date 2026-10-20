@@ -7,7 +7,7 @@ using Avalonia.Threading;
 using System;
 using System.Windows.Input;
 
-namespace Reikou.Views.Components;
+namespace Reikou.Presentation.Views.Player;
 
 public class VideoTransportControls : TemplatedControl
 {

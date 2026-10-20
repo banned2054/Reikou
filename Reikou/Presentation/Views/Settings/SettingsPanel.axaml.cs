@@ -4,7 +4,7 @@ using Avalonia.Platform.Storage;
 using Reikou.ViewModels;
 using System.Linq;
 
-namespace Reikou.Views.Components;
+namespace Reikou.Presentation.Views.Settings;
 
 public partial class SettingsPanel : UserControl
 {

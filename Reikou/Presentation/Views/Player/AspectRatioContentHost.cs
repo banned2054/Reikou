@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using System;
 
-namespace Reikou.Views.Controls;
+namespace Reikou.Presentation.Views.Player;
 
 /// <summary>
 ///     Arranges its child inside the actual video content rectangle, excluding the

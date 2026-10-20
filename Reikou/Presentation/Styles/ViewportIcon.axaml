@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:views="clr-namespace:Reikou.Presentation.Views">
+    <!-- 通用自绘图标控件：Viewbox + Canvas 保留原 svg 的 viewBox 缩放语义，
+         避免按 geometry bounds 缩放造成的视觉尺寸漂移；着色继承 Foreground -->
+
+    <ControlTheme x:Key="{x:Type views:ViewportIcon}" TargetType="views:ViewportIcon">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox Stretch="Uniform">
+                    <Canvas Width="{TemplateBinding ViewBoxWidth}"
+                            Height="{TemplateBinding ViewBoxHeight}">
+                        <Path Data="{TemplateBinding Data}"
+                              Width="{TemplateBinding ViewBoxWidth}"
+                              Height="{TemplateBinding ViewBoxHeight}"
+                              Fill="{TemplateBinding Foreground}"
+                              Stretch="None" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+</ResourceDictionary>

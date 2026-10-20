@@ -8,7 +8,7 @@ using System;
 using System.Collections;
 using System.Windows.Input;
 
-namespace Reikou.Views.Components;
+namespace Reikou.Presentation.Views.Player;
 
 public class VideoOverlayControl : TemplatedControl
 {

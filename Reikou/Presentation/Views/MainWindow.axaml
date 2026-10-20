@@ -3,11 +3,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:Reikou.ViewModels"
-        xmlns:controls="clr-namespace:Reikou.Views.Controls"
-        xmlns:components="clr-namespace:Reikou.Views.Components"
+        xmlns:player="clr-namespace:Reikou.Presentation.Views.Player"
         xmlns:danmaku="clr-namespace:Banned.Avalonia.Danmaku.Views;assembly=Banned.Avalonia.Danmaku"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="Reikou.Views.Pages.MainWindow"
+        x:Class="Reikou.Presentation.Views.MainWindow"
         x:DataType="viewModels:MainWindowViewModel"
         Title="Reikou"
         MinWidth="760"
@@ -15,46 +14,24 @@
         ClosingBehavior="OwnerAndChildWindows"
         DragDrop.AllowDrop="True">
 
-    <Window.Styles>
-        <Style Selector="Button.IconButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="5" />
-            <Setter Property="Focusable" Value="False" />
-            <Setter Property="Cursor" Value="Hand" />
-        </Style>
-
-        <Style Selector="Button.IconButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="White" />
-        </Style>
-
-        <Style Selector="Button.IconButton:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="Gray" />
-            <Setter Property="Opacity" Value="0.7" />
-        </Style>
-    </Window.Styles>
-
     <Panel x:Name="PlayerSurface" Background="Black">
-        <controls:LiveResizeViewportHost x:Name="LiveResizeViewport"
+        <player:LiveResizeViewportHost x:Name="LiveResizeViewport"
                                          ResizeEndDelay="0:0:0.16">
             <Panel>
-                <controls:MpvVideoView x:Name="Player" />
+                <player:MpvVideoView x:Name="Player" />
 
-                <controls:AspectRatioContentHost x:Name="DanmakuContentHost">
+                <player:AspectRatioContentHost x:Name="DanmakuContentHost">
                     <danmaku:DanmakuPlayerView x:Name="DanmakuLayer"
                                                IsHitTestVisible="False" />
-                </controls:AspectRatioContentHost>
+                </player:AspectRatioContentHost>
             </Panel>
-        </controls:LiveResizeViewportHost>
+        </player:LiveResizeViewportHost>
 
         <Panel Background="Transparent"
                PointerPressed="OnVideoPointerPressed"
                PointerReleased="OnVideoPointerReleased" />
 
-        <components:VideoOverlayControl x:Name="OverlayControls"
+        <player:VideoOverlayControl x:Name="OverlayControls"
                                         CurrentTime="{Binding CurrentTime, Mode=TwoWay}"
                                         Duration="{Binding Duration}"
                                         IsPlaying="{Binding IsPlaying}"

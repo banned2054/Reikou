@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Reikou.Views.Components;
+namespace Reikou.Presentation.Views.Player;
 
 internal sealed class DesktopVideoContextMenu
 {

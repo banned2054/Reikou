@@ -14,7 +14,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Reikou.Views.Controls;
+namespace Reikou.Presentation.Views.Player;
 
 public class MpvVideoView : OpenGlControlBase, IDisposable
 {

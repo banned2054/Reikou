@@ -1,8 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:viewModels="clr-namespace:Reikou.ViewModels"
-        xmlns:components="clr-namespace:Reikou.Views.Components"
-        x:Class="Reikou.Views.Pages.SettingsWindow"
+        xmlns:settings="clr-namespace:Reikou.Presentation.Views.Settings"
+        x:Class="Reikou.Presentation.Views.SettingsWindow"
         x:DataType="viewModels:SettingsViewModel"
         Title="Reikou 设置"
         Width="1160"
@@ -13,7 +13,7 @@
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
         RequestedThemeVariant="Dark"
-        Background="#17191F"
+        Background="{DynamicResource SettingsBackgroundBrush}"
         KeyDown="OnKeyDown">
-    <components:SettingsPanel />
+    <settings:SettingsPanel />
 </Window>

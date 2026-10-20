@@ -1,0 +1,393 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:player="clr-namespace:Reikou.Presentation.Views.Player"
+                    xmlns:views="clr-namespace:Reikou.Presentation.Views"
+                    xmlns:models="clr-namespace:Reikou.Models">
+    <!-- 视频区自定义控件的 ControlTheme。Avalonia 中 ControlTheme 只能作为资源挂载
+         （App.Resources），不能进入 Styles 集合，故与 Player.axaml 中的样式分文件 -->
+
+    <Design.PreviewWith>
+        <Border Padding="20" Background="Black" Width="800" Height="200">
+            <player:VideoOverlayControl Title="Test Video" CurrentTime="10" Duration="100"
+                                        TimeText="00:10 / 01:40" />
+        </Border>
+    </Design.PreviewWith>
+
+    <ControlTheme x:Key="{x:Type player:VideoTransportControls}" TargetType="player:VideoTransportControls">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid RowDefinitions="Auto,Auto">
+                    <Grid.Styles>
+                        <Style Selector="FlyoutPresenter.SpeedFlyout">
+                            <Setter Property="Background" Value="#CC000000" />
+                            <Setter Property="BorderBrush" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="Padding" Value="8" />
+                            <Setter Property="CornerRadius" Value="8" />
+                        </Style>
+                    </Grid.Styles>
+
+                    <Slider Grid.Row="0" x:Name="PART_TimeSlider"
+                            Margin="10,0"
+                            Value="{TemplateBinding CurrentTime, Mode=TwoWay}"
+                            Maximum="{TemplateBinding Duration}"
+                            Minimum="0"
+                            Focusable="False" />
+
+                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="10,0,10,10">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <Button x:Name="PART_PreviousButton" Command="{TemplateBinding PreviousCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
+                                <Panel>
+                                    <views:ViewportIcon Width="20" Height="20" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                        Data="{StaticResource Icon.Previous}" />
+                                </Panel>
+                            </Button>
+                            <Button x:Name="PART_BackwardButton" Command="{TemplateBinding BackwardCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
+                                <Panel>
+                                    <views:ViewportIcon Width="20" Height="20" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                        Data="{StaticResource Icon.Backward}" />
+                                </Panel>
+                            </Button>
+                            <Button x:Name="PART_PlayPauseButton" Command="{TemplateBinding PlayPauseCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
+                                <Panel>
+                                    <views:ViewportIcon Width="20" Height="20" ViewBoxWidth="22" ViewBoxHeight="22"
+                                                        Data="{StaticResource Icon.Play}"
+                                                        IsVisible="{Binding !IsPlaying, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    <views:ViewportIcon Width="20" Height="20" ViewBoxWidth="22" ViewBoxHeight="22"
+                                                        Data="{StaticResource Icon.Pause}"
+                                                        IsVisible="{Binding IsPlaying, RelativeSource={RelativeSource TemplatedParent}}" />
+                                </Panel>
+                            </Button>
+                            <Button x:Name="PART_ForwardButton" Command="{TemplateBinding ForwardCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
+                                <Panel>
+                                    <views:ViewportIcon Width="20" Height="20" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                        Data="{StaticResource Icon.Forward}" />
+                                </Panel>
+                            </Button>
+                            <Button x:Name="PART_NextButton" Command="{TemplateBinding NextCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
+                                <Panel>
+                                    <views:ViewportIcon Width="20" Height="20" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                        Data="{StaticResource Icon.Next}" />
+                                </Panel>
+                            </Button>
+                            <TextBlock Text="{TemplateBinding TimeText}" Foreground="White"
+                                       VerticalAlignment="Center" FontSize="12" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center">
+                            <Grid Width="32" Height="32">
+                                <Button x:Name="PART_VolumeButton"
+                                        Command="{TemplateBinding ToggleMuteCommand}"
+                                        Classes="IconButton"
+                                        Width="32"
+                                        Height="32"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Panel>
+                                        <views:ViewportIcon Width="22" Height="22" ViewBoxWidth="22" ViewBoxHeight="22"
+                                                            Data="{StaticResource Icon.VolumeOff}"
+                                                            IsVisible="{Binding IsMuted, RelativeSource={RelativeSource TemplatedParent}}" />
+                                        <views:ViewportIcon Width="22" Height="22" ViewBoxWidth="22" ViewBoxHeight="22"
+                                                            Data="{StaticResource Icon.Volume}"
+                                                            IsVisible="{Binding !IsMuted, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    </Panel>
+                                </Button>
+
+                                <Popup x:Name="PART_VolumePopup"
+                                       IsOpen="{Binding IsVolumeFlyoutOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                       Placement="Top"
+                                       PlacementTarget="{Binding ElementName=PART_VolumeButton}"
+                                       VerticalOffset="-8"
+                                       IsLightDismissEnabled="False">
+                                    <Border x:Name="PART_VolumePanel"
+                                            Classes="OverlayPopupPanel"
+                                            Width="46"
+                                            Height="130">
+                                        <Grid Width="46" Height="130" Background="Transparent">
+                                            <Slider Orientation="Vertical"
+                                                    Height="100"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    Minimum="0"
+                                                    Maximum="{Binding MaximumVolume, RelativeSource={RelativeSource TemplatedParent}}"
+                                                    Value="{Binding Volume, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                                <Slider.RenderTransform>
+                                                    <TranslateTransform X="-2" />
+                                                </Slider.RenderTransform>
+                                            </Slider>
+                                        </Grid>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                            <Button x:Name="PART_SpeedButton"
+                                    Background="Transparent" Foreground="White" Focusable="False" FontWeight="Bold"
+                                    Width="48" Height="32"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Padding="0"
+                                    Content="{TemplateBinding PlaybackSpeedText}">
+                                <Button.Flyout>
+                                    <Flyout Placement="Top" FlyoutPresenterClasses="SpeedFlyout">
+                                        <StackPanel Spacing="4">
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="2.0"
+                                                Content="2.0X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="1.5"
+                                                Content="1.5X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="1.25"
+                                                Content="1.25X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="1.0"
+                                                Content="1.0X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="0.75"
+                                                Content="0.75X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
+                                            <Button
+                                                Command="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                CommandParameter="0.5"
+                                                Content="0.5X" Background="Transparent" Foreground="White"
+                                                Focusable="False" HorizontalContentAlignment="Center" />
+                                        </StackPanel>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                            <Button x:Name="PART_FullscreenButton" Command="{TemplateBinding ToggleFullscreenCommand}"
+                                    Classes="IconButton" Width="32" Height="32">
+                                <Panel>
+                                    <views:ViewportIcon Width="24" Height="24" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                        Data="{StaticResource Icon.Fullscreen}"
+                                                        IsVisible="{Binding !IsFullscreen, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    <views:ViewportIcon Width="24" Height="24" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                        Data="{StaticResource Icon.FullscreenExit}"
+                                                        IsVisible="{Binding IsFullscreen, RelativeSource={RelativeSource TemplatedParent}}" />
+                                </Panel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="{x:Type player:VideoOverlayControl}" TargetType="player:VideoOverlayControl">
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid x:Name="OverlayControls" RowDefinitions="Auto,*,Auto">
+                    <Grid.Styles>
+                        <Style Selector="Border.PlaylistPopup">
+                            <Setter Property="Padding" Value="12" />
+                        </Style>
+                    </Grid.Styles>
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Height="60" VerticalAlignment="Top">
+                        <Grid.Background>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                <GradientStop Offset="0" Color="#99000000" />
+                                <GradientStop Offset="1" Color="#00000000" />
+                            </LinearGradientBrush>
+                        </Grid.Background>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="15,0">
+                            <TextBlock x:Name="VideoText"
+                                       Text="{TemplateBinding Title}"
+                                       VerticalAlignment="Center"
+                                       Foreground="White"
+                                       FontWeight="Bold" />
+                        </StackPanel>
+                        <StackPanel x:Name="PART_TopRightToolArea"
+                                    Grid.Column="2"
+                                    Orientation="Horizontal"
+                                    Spacing="10"
+                                    Margin="0,0,15,0"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center">
+                            <Grid>
+                                <Button x:Name="PART_PlaylistButton"
+                                        Classes="IconButton"
+                                        Width="40"
+                                        Height="40">
+                                    <views:ViewportIcon Width="22" Height="22" ViewBoxWidth="32" ViewBoxHeight="32"
+                                                        Data="{StaticResource Icon.List}" />
+                                </Button>
+                                <Popup x:Name="PART_PlaylistPopup"
+                                       IsOpen="{Binding IsPlaylistPopupOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                       Placement="Bottom"
+                                       PlacementTarget="{Binding ElementName=PART_PlaylistButton}"
+                                       HorizontalOffset="-140"
+                                       VerticalOffset="8"
+                                       IsLightDismissEnabled="True">
+                                    <Border x:Name="PART_PlaylistPopupPanel"
+                                            Classes="OverlayPopupPanel PlaylistPopup"
+                                            Width="320"
+                                            MaxHeight="360">
+                                        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Text="播放列表"
+                                                           Foreground="White"
+                                                           FontSize="15"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center" />
+                                                <Button Grid.Column="1"
+                                                        Classes="IconButton"
+                                                        Width="28"
+                                                        Height="28"
+                                                        Padding="0"
+                                                        Command="{Binding AddPlaylistItemCommand, RelativeSource={RelativeSource TemplatedParent}}">
+                                                    <ToolTip.Tip>添加视频</ToolTip.Tip>
+                                                    <TextBlock Text="+"
+                                                               Foreground="White"
+                                                               FontSize="20"
+                                                               LineHeight="20"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                                </Button>
+                                            </Grid>
+                                            <TextBlock Grid.Row="1"
+                                                       Text="{Binding Title, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       Foreground="#B3FFFFFF"
+                                                       FontSize="12"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <ScrollViewer Grid.Row="2"
+                                                          HorizontalScrollBarVisibility="Disabled"
+                                                          VerticalScrollBarVisibility="Auto">
+                                                <ItemsControl
+                                                    ItemsSource="{Binding PlaylistItems, RelativeSource={RelativeSource TemplatedParent}}">
+                                                    <ItemsControl.Styles>
+                                                        <Style Selector="ContentPresenter">
+                                                            <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                                        </Style>
+                                                    </ItemsControl.Styles>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="models:PlaylistItem">
+                                                            <Button Classes="PlaylistItemButton"
+                                                                    Background="Transparent"
+                                                                    BorderThickness="0"
+                                                                    Padding="0"
+                                                                    HorizontalAlignment="Stretch"
+                                                                    Tag="{Binding RemovePlaylistItemCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                                    HorizontalContentAlignment="Stretch">
+                                                                <Button.ContextMenu>
+                                                                    <ContextMenu>
+                                                                        <MenuItem Header="删除"
+                                                                                Command="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                                CommandParameter="{Binding}" />
+                                                                    </ContextMenu>
+                                                                </Button.ContextMenu>
+                                                                <ToolTip.Tip>
+                                                                    <TextBlock Text="{Binding Title}"
+                                                                               MaxWidth="280"
+                                                                               TextWrapping="Wrap" />
+                                                                </ToolTip.Tip>
+                                                                <Border Padding="10,8"
+                                                                        CornerRadius="8"
+                                                                        Background="#14000000">
+                                                                    <Grid ColumnDefinitions="10,*,Auto"
+                                                                          ColumnSpacing="12">
+                                                                        <Border Width="6"
+                                                                                Height="6"
+                                                                                CornerRadius="3"
+                                                                                Background="#FF5AC8FA"
+                                                                                VerticalAlignment="Center"
+                                                                                HorizontalAlignment="Left"
+                                                                                IsVisible="{Binding IsPlaying}" />
+                                                                        <TextBlock Text="{Binding Title}"
+                                                                                Grid.Column="1"
+                                                                                Foreground="White"
+                                                                                VerticalAlignment="Center"
+                                                                                TextTrimming="CharacterEllipsis"
+                                                                                TextWrapping="NoWrap" />
+                                                                        <TextBlock Grid.Column="2"
+                                                                                Text="{Binding DurationText}"
+                                                                                Foreground="#B3FFFFFF"
+                                                                                VerticalAlignment="Center"
+                                                                                HorizontalAlignment="Right" />
+                                                                    </Grid>
+                                                                </Border>
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </ScrollViewer>
+                                        </Grid>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="2" VerticalAlignment="Bottom">
+                        <Grid.Background>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                <GradientStop Offset="0" Color="#00000000" />
+                                <GradientStop Offset="1" Color="#CC000000" />
+                            </LinearGradientBrush>
+                        </Grid.Background>
+
+                        <!-- Delegated to sub-control, but keep the PART_ name so code-behind can find it -->
+                        <player:VideoTransportControls x:Name="PART_TransportControls"
+                                                       CurrentTime="{Binding CurrentTime, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                       Duration="{Binding Duration, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       IsPlaying="{Binding IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       TimeText="{Binding TimeText, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       PlaybackSpeed="{Binding PlaybackSpeed, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       PlaybackSpeedText="{Binding PlaybackSpeedText, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       Volume="{Binding Volume, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                       MaximumVolume="{Binding MaximumVolume, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       IsMuted="{Binding IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       IsVolumeFlyoutOpen="{Binding IsVolumeFlyoutOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                       IsPointerOverFlyout="{Binding IsPointerOverFlyout, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                       IsFullscreen="{Binding IsFullscreen, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       PlayPauseCommand="{Binding PlayPauseCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       PreviousCommand="{Binding PreviousCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       BackwardCommand="{Binding BackwardCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       ForwardCommand="{Binding ForwardCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       NextCommand="{Binding NextCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       ToggleMuteCommand="{Binding ToggleMuteCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       ToggleDanmakuCommand="{Binding ToggleDanmakuCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       ChangeSpeedCommand="{Binding ChangeSpeedCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                                                       ToggleFullscreenCommand="{Binding ToggleFullscreenCommand, RelativeSource={RelativeSource TemplatedParent}}" />
+                    </Grid>
+
+                    <StackPanel x:Name="PART_RightToolArea"
+                                Grid.RowSpan="3"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Margin="0,0,16,0"
+                                Spacing="12">
+                        <Button
+                            Command="{Binding TakeScreenshotCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                            Classes="IconButton"
+                            Width="40"
+                            Height="40">
+                            <ToolTip.Tip>截图</ToolTip.Tip>
+                            <views:ViewportIcon Width="22" Height="22" ViewBoxWidth="1024" ViewBoxHeight="1024"
+                                                Data="{StaticResource Icon.Screenshot}" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+</ResourceDictionary>

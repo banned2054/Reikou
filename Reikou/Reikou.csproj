@@ -41,9 +41,6 @@
 		<PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
 	</ItemGroup>
 	<ItemGroup>
-		<AvaloniaResource Include="Assets\**" />
-	</ItemGroup>
-	<ItemGroup>
 		<None Update="Libs\**\*.dll;Libs\**\*.so;Libs\**\*.dylib">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>

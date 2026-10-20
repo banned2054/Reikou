@@ -2,24 +2,24 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Reikou.App"
              RequestedThemeVariant="Default">
-    <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+    <!-- 唯一装配点：样式与资源文件彼此不互相 include，全部由此处引入。
+         挂载按 Avalonia 类型边界分两路：Style（含 Classes 外观样式）走 Application.Styles，
+         顺序即覆盖优先级，FluentTheme 必须在最前；ControlTheme（自定义控件模板）与纯资源
+         （主题语义键、图标几何）走 Application.Resources 的 MergedDictionaries。 -->
 
     <Application.Styles>
         <FluentTheme />
-        <Style Selector="Border.OverlayPopupPanel">
-            <Setter Property="Background" Value="#E61A1A1A" />
-            <Setter Property="BorderBrush" Value="#33FFFFFF" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="12" />
-        </Style>
+        <StyleInclude Source="/Presentation/Styles/Player.axaml" />
+        <StyleInclude Source="/Presentation/Styles/Settings.axaml" />
     </Application.Styles>
 
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="/Assets/Icons.axaml" />
-                <ResourceInclude Source="/Views/Components/VideoTransportControls.axaml" />
-                <ResourceInclude Source="/Views/Components/VideoOverlayControl.axaml" />
+                <ResourceInclude Source="/Presentation/Styles/ThemeResources.axaml" />
+                <ResourceInclude Source="/Presentation/Styles/Icons.axaml" />
+                <ResourceInclude Source="/Presentation/Styles/ViewportIcon.axaml" />
+                <ResourceInclude Source="/Presentation/Styles/PlayerThemes.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

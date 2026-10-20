@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 
-namespace Reikou.Views.Pages;
+namespace Reikou.Presentation.Views;
 
 public partial class SettingsWindow : Window
 {

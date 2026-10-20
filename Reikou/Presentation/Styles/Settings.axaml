@@ -1,0 +1,264 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- 设置区域样式：设置面板控件外观（Classes 挂载），视图文件只保留布局与 DataTemplate -->
+
+    <!-- 设置行卡片 -->
+    <Style Selector="Border.SettingRow">
+        <Setter Property="Background" Value="#1E2128" />
+        <Setter Property="BorderBrush" Value="#0AFFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="20,14" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.12" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Border.SettingRow:pointerover">
+        <Setter Property="Background" Value="#23262F" />
+        <Setter Property="BorderBrush" Value="#16FFFFFF" />
+    </Style>
+
+    <Style Selector="TextBlock.SettingTitle">
+        <Setter Property="Foreground" Value="#F2F4F8" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <!-- 说明文字必须左对齐：仅设 MaxWidth 时 Stretch 对齐会让受限宽度的文本块在行内居中 -->
+    <Style Selector="TextBlock.SettingDescription">
+        <Setter Property="Foreground" Value="#9AA1AB" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="LineHeight" Value="18" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+
+    <!-- “重启生效”标记 -->
+    <Style Selector="Border.RestartMark">
+        <Setter Property="Background" Value="#26F5B942" />
+        <Setter Property="Padding" Value="7,2" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.RestartMark TextBlock">
+        <Setter Property="Foreground" Value="#F5B942" />
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <!-- 左侧分类导航 -->
+    <Style Selector="ListBox.SettingsNavigation">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+    </Style>
+    <Style Selector="ListBox.SettingsNavigation ListBoxItem">
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0,2" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.12" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.SettingsNavigation ListBoxItem:pointerover:not(:selected)">
+        <Setter Property="Background" Value="#0AFFFFFF" />
+    </Style>
+    <Style Selector="ListBox.SettingsNavigation ListBoxItem:selected">
+        <Setter Property="Background" Value="#1F3B82F6" />
+    </Style>
+    <Style Selector="ListBox.SettingsNavigation ListBoxItem:selected:pointerover">
+        <Setter Property="Background" Value="#2B3B82F6" />
+    </Style>
+    <Style Selector="ListBox.SettingsNavigation ListBoxItem TextBlock">
+        <Setter Property="Foreground" Value="#A6ADB8" />
+    </Style>
+    <Style Selector="ListBox.SettingsNavigation ListBoxItem:pointerover:not(:selected) TextBlock">
+        <Setter Property="Foreground" Value="#E8EAEE" />
+    </Style>
+    <Style Selector="ListBox.SettingsNavigation ListBoxItem:selected TextBlock">
+        <Setter Property="Foreground" Value="#60A5FA" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ListBox.SettingsNavigation ListBoxItem:selected:pointerover TextBlock">
+        <Setter Property="Foreground" Value="#93C5FD" />
+    </Style>
+
+    <!-- 搜索框 -->
+    <Style Selector="TextBox.SearchBox">
+        <Setter Property="MinHeight" Value="38" />
+        <Setter Property="Background" Value="#1F232B" />
+        <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="36,8,14,8" />
+        <Setter Property="Foreground" Value="#F2F4F8" />
+        <Setter Property="PlaceholderForeground" Value="#6E7580" />
+        <Setter Property="CaretBrush" Value="#60A5FA" />
+        <Setter Property="SelectionBrush" Value="#4060A5FA" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                <BrushTransition Property="Background" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="TextBox.SearchBox:pointerover">
+        <Setter Property="Background" Value="#23262F" />
+    </Style>
+    <Style Selector="TextBox.SearchBox:focus">
+        <Setter Property="BorderBrush" Value="#60A5FA" />
+        <Setter Property="Background" Value="#23262F" />
+    </Style>
+
+    <!-- 输入控件统一风格 -->
+    <Style Selector="TextBox.SettingControl">
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Background" Value="#20232B" />
+        <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12,7" />
+        <Setter Property="Foreground" Value="#F2F4F8" />
+        <Setter Property="PlaceholderForeground" Value="#6E7580" />
+        <Setter Property="CaretBrush" Value="#60A5FA" />
+        <Setter Property="SelectionBrush" Value="#4060A5FA" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+                <BrushTransition Property="Background" Duration="0:0:0.12" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="TextBox.SettingControl:pointerover">
+        <Setter Property="Background" Value="#24272F" />
+    </Style>
+    <Style Selector="TextBox.SettingControl:focus">
+        <Setter Property="BorderBrush" Value="#60A5FA" />
+        <Setter Property="Background" Value="#24272F" />
+    </Style>
+
+    <Style Selector="ComboBox.SettingControl">
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Background" Value="#20232B" />
+        <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12,7" />
+        <Setter Property="Foreground" Value="#F2F4F8" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+                <BrushTransition Property="Background" Duration="0:0:0.12" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="ComboBox.SettingControl:pointerover">
+        <Setter Property="Background" Value="#24272F" />
+    </Style>
+    <Style Selector="ComboBox.SettingControl:focus">
+        <Setter Property="BorderBrush" Value="#60A5FA" />
+        <Setter Property="Background" Value="#24272F" />
+    </Style>
+
+    <!-- NumericUpDown：隐藏内置横向旋转按钮（其两个 34px 按钮在窄宽度下会把数值挤压到不可见），
+         改为 InnerRightContent 里的紧凑纵向步进按钮 -->
+    <Style Selector="NumericUpDown.SettingControl">
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Background" Value="#20232B" />
+        <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12,7,6,7" />
+        <Setter Property="Foreground" Value="#F2F4F8" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+                <BrushTransition Property="Background" Duration="0:0:0.12" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="NumericUpDown.SettingControl:pointerover">
+        <Setter Property="Background" Value="#24272F" />
+    </Style>
+    <Style Selector="NumericUpDown.SettingControl:focus-within">
+        <Setter Property="BorderBrush" Value="#60A5FA" />
+        <Setter Property="Background" Value="#24272F" />
+    </Style>
+
+    <!-- 数值步进按钮 -->
+    <Style Selector="RepeatButton.StepButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Width" Value="22" />
+        <Setter Property="Height" Value="15" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="RepeatButton.StepButton:pointerover">
+        <Setter Property="Background" Value="#14FFFFFF" />
+    </Style>
+    <Style Selector="RepeatButton.StepButton:pressed">
+        <Setter Property="Background" Value="#1FFFFFFF" />
+    </Style>
+    <Style Selector="RepeatButton.StepButton PathIcon">
+        <Setter Property="Foreground" Value="#A6ADB8" />
+    </Style>
+    <Style Selector="RepeatButton.StepButton:pointerover PathIcon">
+        <Setter Property="Foreground" Value="#F2F4F8" />
+    </Style>
+
+    <Style Selector="Slider.SettingControl">
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- ToggleSwitch 空内容时模板仍保留 12px 间隔列，负边距让开关右边缘与其他控件对齐 -->
+    <Style Selector="ToggleSwitch.SettingControl">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,-12,0" />
+        <Setter Property="OnContent" Value="" />
+        <Setter Property="OffContent" Value="" />
+    </Style>
+
+    <!-- 路径浏览按钮 -->
+    <Style Selector="Button.BrowseButton">
+        <Setter Property="Background" Value="#20232B" />
+        <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.12" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.BrowseButton:pointerover">
+        <Setter Property="Background" Value="#24272F" />
+        <Setter Property="BorderBrush" Value="#60A5FA" />
+    </Style>
+</Styles>

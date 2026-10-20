@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 
-namespace Reikou.Views.Controls;
+namespace Reikou.Presentation.Views;
 
 public class ViewportIcon : TemplatedControl
 {
