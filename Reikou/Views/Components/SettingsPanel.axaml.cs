@@ -13,6 +13,21 @@ public partial class SettingsPanel : UserControl
         InitializeComponent();
     }
 
+    private void NumberStepUp(object? sender, RoutedEventArgs e) => StepNumber(sender, 1);
+
+    private void NumberStepDown(object? sender, RoutedEventArgs e) => StepNumber(sender, -1);
+
+    private static void StepNumber(object? sender, int direction)
+    {
+        if (sender is not RepeatButton { CommandParameter: NumberSettingViewModel setting })
+        {
+            return;
+        }
+
+        // NumericValue 的 setter 内部已完成取整与范围限制
+        setting.NumericValue = (setting.NumericValue ?? 0m) + (decimal)setting.Increment * direction;
+    }
+
     private async void BrowsePath(object? sender, RoutedEventArgs e)
     {
         if (sender is not Button { CommandParameter: PathSettingViewModel setting } ||
@@ -25,7 +40,7 @@ public partial class SettingsPanel : UserControl
         {
             var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
-                Title = setting.Title,
+                Title         = setting.Title,
                 AllowMultiple = false
             });
             var path = folders.FirstOrDefault()?.Path.LocalPath;
@@ -39,7 +54,7 @@ public partial class SettingsPanel : UserControl
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = setting.Title,
+            Title         = setting.Title,
             AllowMultiple = false,
             FileTypeFilter =
             [

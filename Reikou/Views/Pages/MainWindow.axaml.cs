@@ -45,6 +45,7 @@ public partial class MainWindow : Window
 
     private DateTime _keyPressStartTime;
     private bool     _isFastForwarding;
+    private bool     _isSpaceKeyDown;
     private Key?     _currentHeldKey;
 
     // --- 鼠标/点击逻辑 ---
@@ -75,9 +76,10 @@ public partial class MainWindow : Window
         DanmakuLayer.SourceProvider     = _danmakuSourceProvider;
         DanmakuLayer.Options.ResizeMode = DanmakuResizeMode.Immediate;
 
-        _viewModel                 =  new MainWindowViewModel(_settingsStore.Settings);
-        _lastVolume               =  _viewModel.Volume;
-        _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        _viewModel  = new MainWindowViewModel(_settingsStore.Settings);
+        _lastVolume = _viewModel.Volume;
+
+        _viewModel.PropertyChanged          += ViewModel_PropertyChanged;
         _viewModel.Settings.SettingsChanged += OnSettingsChanged;
 
         InitializeCommands();     // 先初始化命令
@@ -147,14 +149,16 @@ public partial class MainWindow : Window
 
         _viewModel.ToggleDanmakuCommand = new RelayCommand(_ =>
         {
-            _viewModel.Settings.SetDanmakuEnabled(!DanmakuLayer.IsVisible);
+            _viewModel.Settings.SetDanmakuEnabled(!DanmakuLayer
+                                                     .IsVisible);
         });
 
         _viewModel.ChangeSpeedCommand = new RelayCommand(_ =>
         {
             var speed = _ switch
             {
-                double doubleSpeed                                                        => doubleSpeed,
+                double doubleSpeed => doubleSpeed,
+
                 string stringSpeed when double.TryParse(stringSpeed, out var parsedSpeed) => parsedSpeed,
                 _                                                                         => 1.0
             };
@@ -165,7 +169,6 @@ public partial class MainWindow : Window
         _viewModel.ToggleFullscreenCommand = new RelayCommand(_ => ToggleFullscreen());
         _viewModel.TakeScreenshotCommand   = new RelayCommand(_ => TakeScreenshot());
         _viewModel.OpenSettingsCommand     = new RelayCommand(_ => OpenSettings());
-        _viewModel.Settings.CloseCommand   = new RelayCommand(_ => CloseSettings());
         _viewModel.AddPlaylistItemCommand  = new RelayCommand(async _ => await AddPlaylistItemsAsync());
         _viewModel.RemovePlaylistItemCommand = new RelayCommand(async parameter =>
         {
@@ -217,8 +220,8 @@ public partial class MainWindow : Window
         }
 
         OverlayControls.IsPlaylistPopupOpen = false;
-        _viewModel.Settings.IsOpen           = true;
-        _lastMouseMoveTime                   = DateTime.Now;
+        _viewModel.Settings.IsOpen          = true;
+        _lastMouseMoveTime                  = DateTime.Now;
         ShowOverlay();
 
         var settingsWindow = new SettingsWindow
@@ -267,13 +270,14 @@ public partial class MainWindow : Window
 
     private void OnSettingsChanged(AppSettings settings)
     {
-        var previous = _settingsStore.Settings;
+        var previous   = _settingsStore.Settings;
         var normalized = _settingsStore.Update(settings);
         _viewModel.MaximumVolume = normalized.Audio.MaximumVolume;
         if (_viewModel.Volume > normalized.Audio.MaximumVolume)
         {
             _viewModel.Volume = normalized.Audio.MaximumVolume;
         }
+
         Player.ApplyRuntimeSettings(previous, normalized);
         ApplyManagedSettings(normalized, applyStartupState : false);
         QueueSettingsSave();
@@ -286,23 +290,23 @@ public partial class MainWindow : Window
         {
             Application.Current.RequestedThemeVariant = normalized.Interface.Theme switch
             {
-                ApplicationThemeMode.Dark => ThemeVariant.Dark,
+                ApplicationThemeMode.Dark  => ThemeVariant.Dark,
                 ApplicationThemeMode.Light => ThemeVariant.Light,
-                _ => ThemeVariant.Default
+                _                          => ThemeVariant.Default
             };
         }
 
-        DanmakuLayer.IsVisible = normalized.Danmaku.Enabled;
-        DanmakuLayer.Options.OpacityRatio = normalized.Danmaku.Opacity;
-        DanmakuLayer.Options.FontScale = normalized.Danmaku.FontScale;
-        DanmakuLayer.Options.ScrollSpeed = normalized.Danmaku.Speed;
+        DanmakuLayer.IsVisible                = normalized.Danmaku.Enabled;
+        DanmakuLayer.Options.OpacityRatio     = normalized.Danmaku.Opacity;
+        DanmakuLayer.Options.FontScale        = normalized.Danmaku.FontScale;
+        DanmakuLayer.Options.ScrollSpeed      = normalized.Danmaku.Speed;
         DanmakuLayer.Options.DisplayAreaRatio = normalized.Danmaku.Density / 100.0;
 
-        if (applyStartupState &&
+        if (applyStartupState                      &&
             normalized.Interface.StartInFullscreen &&
             WindowState != WindowState.FullScreen)
         {
-            WindowState = WindowState.FullScreen;
+            WindowState             = WindowState.FullScreen;
             _viewModel.IsFullscreen = true;
         }
     }
@@ -314,13 +318,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (settings.WindowWidth is { } width && settings.WindowHeight is { } height)
+        if (settings is { WindowWidth: { } width, WindowHeight: { } height })
         {
-            Width = width;
+            Width  = width;
             Height = height;
         }
 
-        if (settings.WindowX is { } x && settings.WindowY is { } y)
+        if (settings is { WindowX: { } x, WindowY: { } y })
         {
             Position = new PixelPoint(x, y);
         }
@@ -393,8 +397,9 @@ public partial class MainWindow : Window
         AddHandler(DragDrop.DropEvent, OnDrop);
 
         // 窗口输入事件
-        KeyDown += OnWindowKeyDown;
-        KeyUp   += OnWindowKeyUp;
+        AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
+        AddHandler(KeyUpEvent, OnWindowKeyUp, RoutingStrategies.Tunnel);
+        Deactivated += (_, _) => ResetHeldKeyboardInput();
         // 全局鼠标事件（使用 Tunnel 策略，防止被 Popup/LightDismiss 拦截）
         AddHandler(PointerMovedEvent, OnWindowPointerMoved, RoutingStrategies.Tunnel   | RoutingStrategies.Bubble);
         AddHandler(PointerExitedEvent, OnWindowPointerExited, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
@@ -435,6 +440,11 @@ public partial class MainWindow : Window
 
             _playbackUiTimer?.Stop();
             _uiVisibilityTimer?.Stop();
+            if (Player.Service is { } service)
+            {
+                service.PlaybackStateChanged -= OnPlayerPlaybackStateChanged;
+            }
+
             _playlistDurationLoadCts?.Cancel();
             _settingsSaveCts?.Cancel();
             _settingsSaveCts?.Dispose();
@@ -459,6 +469,13 @@ public partial class MainWindow : Window
         };
 
         // 播放器事件回调
+        if (Player.Service is { } service)
+        {
+            service.PlaybackStateChanged += OnPlayerPlaybackStateChanged;
+        }
+
+        UpdateIsPlayingFromPlayerState();
+
         Player.FileLoaded += (_, fileName) =>
         {
             Dispatcher.UIThread.Post(() =>
@@ -481,6 +498,25 @@ public partial class MainWindow : Window
             Debug.WriteLine($"[Danmaku] Failed to load '{e.MediaId}': {e.Exception}");
         };
     }
+
+    private void OnPlayerPlaybackStateChanged(object? sender, MpvPlaybackStateChangedEventArgs e)
+    {
+        if (e.PreviousState.IsPaused == e.CurrentState.IsPaused)
+        {
+            return;
+        }
+
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            UpdateIsPlayingFromPlayerState();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(UpdateIsPlayingFromPlayerState);
+        }
+    }
+
+    private void UpdateIsPlayingFromPlayerState() => _viewModel.IsPlaying = !Player.PlaybackState.IsPaused;
 
     private IntPtr OnWindowsMessage(IntPtr hwnd, uint message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
@@ -523,11 +559,10 @@ public partial class MainWindow : Window
             if (Player.Service == null) return;
 
             var state = Player.PlaybackState;
-            _viewModel.Duration            = state.Duration;
-            _viewModel.CurrentTime         = state.Position;
-            _viewModel.IsPlaying           = !state.IsPaused;
-            _viewModel.PlaybackSpeed       = state.Speed;
-            _viewModel.Volume              = state.Volume;
+            _viewModel.Duration      = state.Duration;
+            _viewModel.CurrentTime   = state.Position;
+            _viewModel.PlaybackSpeed = state.Speed;
+            _viewModel.Volume        = state.Volume;
             _viewModel.Settings.SetActiveHardwareDecoder(state.HardwareDecoder);
             DanmakuContentHost.AspectRatio = state.VideoAspectRatio;
 
@@ -626,14 +661,19 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_viewModel.Settings.IsOpen)
+        if (ShouldPreserveFocusedControlKeyboardInput(e))
         {
             return;
         }
 
-        if (e.Key == Key.Space)
+        if (e.Key == Key.Space && e.KeyModifiers == KeyModifiers.None)
         {
-            Player.TogglePause();
+            if (!_isSpaceKeyDown)
+            {
+                _isSpaceKeyDown = true;
+                Player.TogglePause();
+            }
+
             e.Handled = true;
             return;
         }
@@ -664,8 +704,30 @@ public partial class MainWindow : Window
 
     private void OnWindowKeyUp(object? sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Space)
+        {
+            var wasHandled = _isSpaceKeyDown;
+            _isSpaceKeyDown = false;
+            if (wasHandled)
+            {
+                e.Handled = true;
+            }
+
+            return;
+        }
+
         if (_viewModel.Settings.IsOpen)
         {
+            return;
+        }
+
+        if (ShouldPreserveFocusedControlKeyboardInput(e))
+        {
+            if (e.Key == _currentHeldKey)
+            {
+                CancelHeldSeekKey();
+            }
+
             return;
         }
 
@@ -686,6 +748,43 @@ public partial class MainWindow : Window
         }
 
         e.Handled = true;
+    }
+
+    private bool ShouldPreserveFocusedControlKeyboardInput(KeyEventArgs e)
+    {
+        if (_viewModel.Settings.IsOpen          || _videoContextMenu.Menu.IsOpen      ||
+            OverlayControls.IsPlaylistPopupOpen || OverlayControls.IsVolumeFlyoutOpen ||
+            OverlayControls.IsPointerOverFlyout)
+        {
+            return true;
+        }
+
+        for (StyledElement? element = e.Source as StyledElement; element != null; element = element.Parent)
+        {
+            if (element is TextBox or NumericUpDown or ComboBox or Button or ToggleButton or MenuItem or ListBoxItem or
+                           Slider or ScrollBar)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ResetHeldKeyboardInput()
+    {
+        _isSpaceKeyDown = false;
+        CancelHeldSeekKey();
+    }
+
+    private void CancelHeldSeekKey()
+    {
+        if (_isFastForwarding)
+        {
+            StopKeyFastForward();
+        }
+
+        _currentHeldKey = null;
     }
 
     private void StartKeyFastForward(Key key)

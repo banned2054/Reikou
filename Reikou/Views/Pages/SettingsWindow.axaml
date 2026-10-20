@@ -5,14 +5,15 @@
         x:Class="Reikou.Views.Pages.SettingsWindow"
         x:DataType="viewModels:SettingsViewModel"
         Title="Reikou 设置"
-        Width="1120"
-        Height="760"
-        MinWidth="820"
-        MinHeight="520"
+        Width="1160"
+        Height="780"
+        MinWidth="900"
+        MinHeight="580"
         CanResize="True"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Background="#FA18191C"
+        RequestedThemeVariant="Dark"
+        Background="#17191F"
         KeyDown="OnKeyDown">
     <components:SettingsPanel />
 </Window>

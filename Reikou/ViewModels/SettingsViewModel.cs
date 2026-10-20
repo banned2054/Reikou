@@ -5,41 +5,41 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Windows.Input;
 
 namespace Reikou.ViewModels;
 
 internal sealed class SettingsViewModel : INotifyPropertyChanged
 {
     private readonly HardwareDecodingMode _initialHardwareDecoding;
-    private readonly AudioOutputDriver _initialAudioOutput;
-    private readonly string _initialAudioDevice;
+    private readonly AudioOutputDriver    _initialAudioOutput;
+    private readonly string               _initialAudioDevice;
 
-    private AppSettings _settings;
-    private bool _isOpen;
-    private string? _activeHardwareDecoder;
-    private string _searchText = string.Empty;
     private SettingsCategoryViewModel _selectedCategory;
+    private AppSettings               _settings;
+
+    private bool    _isOpen;
+    private string? _activeHardwareDecoder;
+    private string  _searchText = string.Empty;
 
     public SettingsViewModel(AppSettings settings)
     {
-        _settings = settings.Normalize();
+        _settings                = settings.Normalize();
         _initialHardwareDecoding = _settings.Video.HardwareDecoding;
-        _initialAudioOutput = _settings.Audio.OutputDriver;
-        _initialAudioDevice = _settings.Audio.Device;
+        _initialAudioOutput      = _settings.Audio.OutputDriver;
+        _initialAudioDevice      = _settings.Audio.Device;
 
-        Categories = BuildCategories();
+        Categories        = BuildCategories();
         _selectedCategory = Categories[0];
         RefreshVisibleOptions();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
-    public event Action<AppSettings>? SettingsChanged;
+    public event Action<AppSettings>?         SettingsChanged;
 
-    public ICommand CloseCommand { get; set; } = null!;
+    public ObservableCollection<SettingsCategoryViewModel> Categories     { get; }
+    public ObservableCollection<SettingsOptionViewModel>   VisibleOptions { get; } = [];
 
-    public ObservableCollection<SettingsCategoryViewModel> Categories { get; }
-    public ObservableCollection<SettingsOptionViewModel> VisibleOptions { get; } = [];
+    public bool HasVisibleOptions => VisibleOptions.Count > 0;
 
     public bool IsOpen
     {
@@ -81,14 +81,14 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
 
     public bool IsRestartRequired =>
         _settings.Video.HardwareDecoding != _initialHardwareDecoding ||
-        _settings.Audio.OutputDriver != _initialAudioOutput ||
+        _settings.Audio.OutputDriver     != _initialAudioOutput      ||
         !string.Equals(_settings.Audio.Device, _initialAudioDevice, StringComparison.Ordinal);
 
     public string ActiveHardwareDecoderText => _activeHardwareDecoder switch
     {
         null or "" => "等待媒体",
-        "no" => "软件解码",
-        _ => _activeHardwareDecoder
+        "no"       => "软件解码",
+        _          => _activeHardwareDecoder
     };
 
     public void SetActiveHardwareDecoder(string? decoder)
@@ -364,6 +364,7 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
             VisibleOptions.Add(option);
         }
 
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasVisibleOptions)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ContentTitle)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ContentDescription)));
     }
@@ -393,50 +394,25 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
         SettingsChanged?.Invoke(_settings);
     }
 
-    private static ToggleSettingViewModel Toggle(
-        string title,
-        string description,
-        bool value,
-        Action<bool> changed,
-        bool restartRequired = false) =>
+    private static ToggleSettingViewModel Toggle(string title, string description, bool value, Action<bool> changed,
+                                                 bool   restartRequired = false) =>
         new(title, description, value, changed, restartRequired);
 
-    private static ChoiceSettingViewModel Choice(
-        string title,
-        string description,
-        IEnumerable<SettingChoice> choices,
-        int selected,
-        Action<int> changed,
-        bool restartRequired = false) =>
+    private static ChoiceSettingViewModel Choice(string title, string description, IEnumerable<SettingChoice> choices,
+                                                 int    selected, Action<int> changed, bool restartRequired = false) =>
         new(title, description, choices, selected, changed, restartRequired);
 
-    private static NumberSettingViewModel Number(
-        string title,
-        string description,
-        double value,
-        double minimum,
-        double maximum,
-        double increment,
-        string suffix,
-        Action<double> changed,
-        bool restartRequired = false) =>
+    private static NumberSettingViewModel Number(string         title, string description, double value, double minimum,
+                                                 double         maximum, double increment, string suffix,
+                                                 Action<double> changed, bool restartRequired = false) =>
         new(title, description, value, minimum, maximum, increment, suffix, changed, restartRequired);
 
-    private static TextSettingViewModel Text(
-        string title,
-        string description,
-        string value,
-        Action<string> changed,
-        bool restartRequired = false) =>
+    private static TextSettingViewModel Text(string title, string description, string value, Action<string> changed,
+                                             bool   restartRequired = false) =>
         new(title, description, value, changed, restartRequired);
 
-    private static PathSettingViewModel Path(
-        string title,
-        string description,
-        string value,
-        SettingPathKind pathKind,
-        Action<string> changed,
-        bool restartRequired = false) =>
+    private static PathSettingViewModel Path(string title, string description, string value, SettingPathKind pathKind,
+                                             Action<string> changed, bool restartRequired = false) =>
         new(title, description, value, pathKind, changed, restartRequired);
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

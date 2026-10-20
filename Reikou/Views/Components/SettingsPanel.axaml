@@ -3,53 +3,317 @@
              xmlns:viewModels="clr-namespace:Reikou.ViewModels"
              x:Class="Reikou.Views.Components.SettingsPanel"
              x:DataType="viewModels:SettingsViewModel">
+    <UserControl.Resources>
+        <!-- 强调色：蓝色系，覆盖 Fluent 资源键后 ToggleSwitch / Slider / 焦点框等统一生效 -->
+        <Color x:Key="SystemAccentColor">#3B82F6</Color>
+        <Color x:Key="SystemAccentColorLight1">#60A5FA</Color>
+        <Color x:Key="SystemAccentColorLight2">#93C5FD</Color>
+        <Color x:Key="SystemAccentColorLight3">#BFDBFE</Color>
+        <Color x:Key="SystemAccentColorDark1">#2563EB</Color>
+        <Color x:Key="SystemAccentColorDark2">#1D4ED8</Color>
+        <Color x:Key="SystemAccentColorDark3">#1E40AF</Color>
+
+        <!-- ToggleSwitch 配色（Dark 变体资源键覆盖） -->
+        <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#00000000" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#54FFFFFF" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#A6ADB8" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOffPointerOver" Color="#0FFFFFFF" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOffPointerOver" Color="#8AFFFFFF" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="#C9CDD4" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOffPressed" Color="#14FFFFFF" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOffPressed" Color="#8AFFFFFF" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPressed" Color="#8F959E" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#3B82F6" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#00000000" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="#0B1526" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#60A5FA" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPointerOver" Color="#00000000" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="#0B1526" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#2563EB" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPressed" Color="#00000000" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="#091120" />
+        <SolidColorBrush x:Key="ToggleSwitchContainerBackground" Color="#00000000" />
+        <SolidColorBrush x:Key="ToggleSwitchContainerBackgroundPointerOver" Color="#00000000" />
+        <SolidColorBrush x:Key="ToggleSwitchContainerBackgroundPressed" Color="#00000000" />
+
+        <!-- Slider 配色（轨道 / 已选段 / 滑块头） -->
+        <SolidColorBrush x:Key="SliderTrackFill" Color="#29FFFFFF" />
+        <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#33FFFFFF" />
+        <SolidColorBrush x:Key="SliderTrackFillPressed" Color="#29FFFFFF" />
+        <SolidColorBrush x:Key="SliderTrackFillDisabled" Color="#14FFFFFF" />
+        <SolidColorBrush x:Key="SliderTrackValueFill" Color="#3B82F6" />
+        <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#60A5FA" />
+        <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="#2563EB" />
+        <SolidColorBrush x:Key="SliderTrackValueFillDisabled" Color="#3D4854" />
+        <SolidColorBrush x:Key="SliderThumbBackground" Color="#F2F4F8" />
+        <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#DCE1E8" />
+        <SolidColorBrush x:Key="SliderThumbBackgroundDisabled" Color="#6E7580" />
+        <SolidColorBrush x:Key="SliderContainerBackground" Color="#00000000" />
+        <SolidColorBrush x:Key="SliderContainerBackgroundPointerOver" Color="#00000000" />
+        <SolidColorBrush x:Key="SliderContainerBackgroundPressed" Color="#00000000" />
+        <SolidColorBrush x:Key="SliderContainerBackgroundDisabled" Color="#00000000" />
+    </UserControl.Resources>
+
     <UserControl.Styles>
+        <!-- 设置行卡片 -->
         <Style Selector="Border.SettingRow">
-            <Setter Property="Padding" Value="0,16" />
-            <Setter Property="BorderBrush" Value="#14FFFFFF" />
-            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Background" Value="#1E2128" />
+            <Setter Property="BorderBrush" Value="#0AFFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="20,14" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
         </Style>
+        <Style Selector="Border.SettingRow:pointerover">
+            <Setter Property="Background" Value="#23262F" />
+            <Setter Property="BorderBrush" Value="#16FFFFFF" />
+        </Style>
+
         <Style Selector="TextBlock.SettingTitle">
-            <Setter Property="Foreground" Value="#F2FFFFFF" />
+            <Setter Property="Foreground" Value="#F2F4F8" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
+        <!-- 说明文字必须左对齐：仅设 MaxWidth 时 Stretch 对齐会让受限宽度的文本块在行内居中 -->
         <Style Selector="TextBlock.SettingDescription">
-            <Setter Property="Foreground" Value="#8FFFFFFF" />
+            <Setter Property="Foreground" Value="#9AA1AB" />
             <Setter Property="FontSize" Value="12" />
+            <Setter Property="LineHeight" Value="18" />
             <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="MaxWidth" Value="440" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
-        <Style Selector="TextBlock.RestartMark">
+
+        <!-- “重启生效”标记 -->
+        <Style Selector="Border.RestartMark">
+            <Setter Property="Background" Value="#26F5B942" />
+            <Setter Property="Padding" Value="7,2" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.RestartMark TextBlock">
             <Setter Property="Foreground" Value="#F5B942" />
-            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
+
+        <!-- 左侧分类导航 -->
         <Style Selector="ListBox.SettingsNavigation">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
         </Style>
         <Style Selector="ListBox.SettingsNavigation ListBoxItem">
             <Setter Property="MinHeight" Value="40" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="Margin" Value="8,2" />
-            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="CornerRadius" Value="8" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="ListBox.SettingsNavigation ListBoxItem:pointerover:not(:selected)">
+            <Setter Property="Background" Value="#0AFFFFFF" />
         </Style>
         <Style Selector="ListBox.SettingsNavigation ListBoxItem:selected">
-            <Setter Property="Background" Value="#24FFFFFF" />
+            <Setter Property="Background" Value="#1F3B82F6" />
         </Style>
-        <Style Selector="ListBox.SettingsNavigation ListBoxItem:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#16FFFFFF" />
+        <Style Selector="ListBox.SettingsNavigation ListBoxItem:selected:pointerover">
+            <Setter Property="Background" Value="#2B3B82F6" />
         </Style>
-        <Style Selector="ComboBox.SettingControl">
-            <Setter Property="MinWidth" Value="230" />
-            <Setter Property="MaxWidth" Value="300" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Style Selector="ListBox.SettingsNavigation ListBoxItem TextBlock">
+            <Setter Property="Foreground" Value="#A6ADB8" />
         </Style>
+        <Style Selector="ListBox.SettingsNavigation ListBoxItem:pointerover:not(:selected) TextBlock">
+            <Setter Property="Foreground" Value="#E8EAEE" />
+        </Style>
+        <Style Selector="ListBox.SettingsNavigation ListBoxItem:selected TextBlock">
+            <Setter Property="Foreground" Value="#60A5FA" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="ListBox.SettingsNavigation ListBoxItem:selected:pointerover TextBlock">
+            <Setter Property="Foreground" Value="#93C5FD" />
+        </Style>
+
+        <!-- 搜索框 -->
+        <Style Selector="TextBox.SearchBox">
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Background" Value="#1F232B" />
+            <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="36,8,14,8" />
+            <Setter Property="Foreground" Value="#F2F4F8" />
+            <Setter Property="PlaceholderForeground" Value="#6E7580" />
+            <Setter Property="CaretBrush" Value="#60A5FA" />
+            <Setter Property="SelectionBrush" Value="#4060A5FA" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="TextBox.SearchBox:pointerover">
+            <Setter Property="Background" Value="#23262F" />
+        </Style>
+        <Style Selector="TextBox.SearchBox:focus">
+            <Setter Property="BorderBrush" Value="#60A5FA" />
+            <Setter Property="Background" Value="#23262F" />
+        </Style>
+
+        <!-- 输入控件统一风格 -->
         <Style Selector="TextBox.SettingControl">
-            <Setter Property="MinWidth" Value="230" />
-            <Setter Property="MaxWidth" Value="380" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Background" Value="#20232B" />
+            <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Foreground" Value="#F2F4F8" />
+            <Setter Property="PlaceholderForeground" Value="#6E7580" />
+            <Setter Property="CaretBrush" Value="#60A5FA" />
+            <Setter Property="SelectionBrush" Value="#4060A5FA" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+                    <BrushTransition Property="Background" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="TextBox.SettingControl:pointerover">
+            <Setter Property="Background" Value="#24272F" />
+        </Style>
+        <Style Selector="TextBox.SettingControl:focus">
+            <Setter Property="BorderBrush" Value="#60A5FA" />
+            <Setter Property="Background" Value="#24272F" />
+        </Style>
+
+        <Style Selector="ComboBox.SettingControl">
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Background" Value="#20232B" />
+            <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Foreground" Value="#F2F4F8" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+                    <BrushTransition Property="Background" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="ComboBox.SettingControl:pointerover">
+            <Setter Property="Background" Value="#24272F" />
+        </Style>
+        <Style Selector="ComboBox.SettingControl:focus">
+            <Setter Property="BorderBrush" Value="#60A5FA" />
+            <Setter Property="Background" Value="#24272F" />
+        </Style>
+
+        <!-- NumericUpDown：隐藏内置横向旋转按钮（其两个 34px 按钮在窄宽度下会把数值挤压到不可见），
+             改为 InnerRightContent 里的紧凑纵向步进按钮 -->
+        <Style Selector="NumericUpDown.SettingControl">
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Background" Value="#20232B" />
+            <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,7,6,7" />
+            <Setter Property="Foreground" Value="#F2F4F8" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+                    <BrushTransition Property="Background" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="NumericUpDown.SettingControl:pointerover">
+            <Setter Property="Background" Value="#24272F" />
+        </Style>
+        <Style Selector="NumericUpDown.SettingControl:focus-within">
+            <Setter Property="BorderBrush" Value="#60A5FA" />
+            <Setter Property="Background" Value="#24272F" />
+        </Style>
+
+        <!-- 数值步进按钮 -->
+        <Style Selector="RepeatButton.StepButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="15" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="RepeatButton.StepButton:pointerover">
+            <Setter Property="Background" Value="#14FFFFFF" />
+        </Style>
+        <Style Selector="RepeatButton.StepButton:pressed">
+            <Setter Property="Background" Value="#1FFFFFFF" />
+        </Style>
+        <Style Selector="RepeatButton.StepButton PathIcon">
+            <Setter Property="Foreground" Value="#A6ADB8" />
+        </Style>
+        <Style Selector="RepeatButton.StepButton:pointerover PathIcon">
+            <Setter Property="Foreground" Value="#F2F4F8" />
+        </Style>
+
+        <Style Selector="Slider.SettingControl">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- ToggleSwitch 空内容时模板仍保留 12px 间隔列，负边距让开关右边缘与其他控件对齐 -->
+        <Style Selector="ToggleSwitch.SettingControl">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,-12,0" />
+            <Setter Property="OnContent" Value="" />
+            <Setter Property="OffContent" Value="" />
+        </Style>
+
+        <!-- 路径浏览按钮 -->
+        <Style Selector="Button.BrowseButton">
+            <Setter Property="Background" Value="#20232B" />
+            <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.BrowseButton:pointerover">
+            <Setter Property="Background" Value="#24272F" />
+            <Setter Property="BorderBrush" Value="#60A5FA" />
         </Style>
     </UserControl.Styles>
 
@@ -57,19 +321,20 @@
         <DataTemplate DataType="{x:Type viewModels:ToggleSettingViewModel}"
                       x:DataType="viewModels:ToggleSettingViewModel">
             <Border Classes="SettingRow">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="28">
-                    <StackPanel Spacing="5">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+                    <StackPanel Spacing="5" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
-                            <TextBlock Classes="RestartMark"
-                                       Text="重启生效"
-                                       IsVisible="{Binding RestartRequired}" />
+                            <Border Classes="RestartMark"
+                                    IsVisible="{Binding RestartRequired}">
+                                <TextBlock Text="重启生效" />
+                            </Border>
                         </StackPanel>
                         <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
                     </StackPanel>
                     <ToggleSwitch Grid.Column="1"
-                                  IsChecked="{Binding Value, Mode=TwoWay}"
-                                  VerticalAlignment="Center" />
+                                  Classes="SettingControl"
+                                  IsChecked="{Binding Value, Mode=TwoWay}" />
                 </Grid>
             </Border>
         </DataTemplate>
@@ -77,24 +342,26 @@
         <DataTemplate DataType="{x:Type viewModels:ChoiceSettingViewModel}"
                       x:DataType="viewModels:ChoiceSettingViewModel">
             <Border Classes="SettingRow">
-                <Grid ColumnDefinitions="*,260" ColumnSpacing="24">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
                     <StackPanel Spacing="5" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
-                            <TextBlock Classes="RestartMark"
-                                       Text="重启生效"
-                                       IsVisible="{Binding RestartRequired}" />
+                            <Border Classes="RestartMark"
+                                    IsVisible="{Binding RestartRequired}">
+                                <TextBlock Text="重启生效" />
+                            </Border>
                         </StackPanel>
                         <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
                     </StackPanel>
                     <ComboBox Grid.Column="1"
                               Classes="SettingControl"
+                              Width="320"
                               ItemsSource="{Binding Choices}"
                               SelectedItem="{Binding SelectedChoice, Mode=TwoWay}"
                               VerticalAlignment="Center">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="viewModels:SettingChoice">
-                                <TextBlock Text="{Binding Label}" />
+                                <TextBlock Text="{Binding Label}" Foreground="#F2F4F8" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
@@ -105,33 +372,65 @@
         <DataTemplate DataType="{x:Type viewModels:NumberSettingViewModel}"
                       x:DataType="viewModels:NumberSettingViewModel">
             <Border Classes="SettingRow">
-                <Grid ColumnDefinitions="*,260" ColumnSpacing="24">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
                     <StackPanel Spacing="5" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
-                            <TextBlock Classes="RestartMark"
-                                       Text="重启生效"
-                                       IsVisible="{Binding RestartRequired}" />
+                            <Border Classes="RestartMark"
+                                    IsVisible="{Binding RestartRequired}">
+                                <TextBlock Text="重启生效" />
+                            </Border>
                         </StackPanel>
                         <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
                     </StackPanel>
-                    <Grid Grid.Column="1" ColumnDefinitions="*,96,Auto" ColumnSpacing="10">
-                        <Slider Minimum="{Binding Minimum}"
+                    <Grid Grid.Column="1"
+                          Width="320"
+                          ColumnDefinitions="*,96,Auto"
+                          ColumnSpacing="10"
+                          VerticalAlignment="Center">
+                        <Slider Classes="SettingControl"
+                                Minimum="{Binding Minimum}"
                                 Maximum="{Binding Maximum}"
                                 TickFrequency="{Binding Increment}"
                                 Value="{Binding SliderValue, Mode=TwoWay}"
                                 VerticalAlignment="Center" />
                         <NumericUpDown Grid.Column="1"
+                                       Classes="SettingControl"
+                                       Width="96"
+                                       ShowButtonSpinner="False"
                                        Minimum="{Binding Minimum}"
                                        Maximum="{Binding Maximum}"
                                        Increment="{Binding Increment}"
                                        Value="{Binding NumericValue, Mode=TwoWay}"
-                                       FormatString="0.####"
-                                       HorizontalContentAlignment="Right" />
+                                       FormatString="0.####">
+                            <NumericUpDown.InnerRightContent>
+                                <StackPanel Margin="0,0,2,0"
+                                            Spacing="1"
+                                            VerticalAlignment="Center">
+                                    <RepeatButton Classes="StepButton"
+                                                  Click="NumberStepUp"
+                                                  CommandParameter="{Binding}"
+                                                  ToolTip.Tip="增加">
+                                        <PathIcon Width="10"
+                                                  Height="6"
+                                                  Data="M0,9 L10,0 20,9 19,10 10,2 1,10 z" />
+                                    </RepeatButton>
+                                    <RepeatButton Classes="StepButton"
+                                                  Click="NumberStepDown"
+                                                  CommandParameter="{Binding}"
+                                                  ToolTip.Tip="减少">
+                                        <PathIcon Width="10"
+                                                  Height="6"
+                                                  Data="M0,1 L10,10 20,1 19,0 10,8 1,0 z" />
+                                    </RepeatButton>
+                                </StackPanel>
+                            </NumericUpDown.InnerRightContent>
+                        </NumericUpDown>
                         <TextBlock Grid.Column="2"
                                    Text="{Binding Suffix}"
-                                   Foreground="#8FFFFFFF"
-                                   MinWidth="28"
+                                   Foreground="#9AA1AB"
+                                   FontSize="12.5"
+                                   MinWidth="24"
                                    VerticalAlignment="Center" />
                     </Grid>
                 </Grid>
@@ -141,31 +440,34 @@
         <DataTemplate DataType="{x:Type viewModels:PathSettingViewModel}"
                       x:DataType="viewModels:PathSettingViewModel">
             <Border Classes="SettingRow">
-                <Grid ColumnDefinitions="*,300" ColumnSpacing="24">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
                     <StackPanel Spacing="5" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
-                            <TextBlock Classes="RestartMark"
-                                       Text="重启生效"
-                                       IsVisible="{Binding RestartRequired}" />
+                            <Border Classes="RestartMark"
+                                    IsVisible="{Binding RestartRequired}">
+                                <TextBlock Text="重启生效" />
+                            </Border>
                         </StackPanel>
                         <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
                     </StackPanel>
-                    <Grid Grid.Column="1" ColumnDefinitions="*,36" ColumnSpacing="8">
+                    <Grid Grid.Column="1"
+                          Width="320"
+                          ColumnDefinitions="*,36"
+                          ColumnSpacing="8"
+                          VerticalAlignment="Center">
                         <TextBox Classes="SettingControl"
                                  Text="{Binding Value, Mode=TwoWay}"
                                  VerticalContentAlignment="Center" />
                         <Button Grid.Column="1"
-                                Width="36"
-                                Height="32"
-                                Padding="7"
+                                Classes="BrowseButton"
                                 Click="BrowsePath"
                                 CommandParameter="{Binding}"
                                 ToolTip.Tip="选择路径">
-                            <Svg Path="avares://Reikou/Assets/ico-folder.svg"
-                                 Width="18"
-                                 Height="18"
-                                 Stretch="Uniform" />
+                            <PathIcon Width="15"
+                                      Height="15"
+                                      Foreground="#A6ADB8"
+                                      Data="m14 4 4 4h14v22H0V4z" />
                         </Button>
                     </Grid>
                 </Grid>
@@ -175,18 +477,20 @@
         <DataTemplate DataType="{x:Type viewModels:TextSettingViewModel}"
                       x:DataType="viewModels:TextSettingViewModel">
             <Border Classes="SettingRow">
-                <Grid ColumnDefinitions="*,300" ColumnSpacing="24">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
                     <StackPanel Spacing="5" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
-                            <TextBlock Classes="RestartMark"
-                                       Text="重启生效"
-                                       IsVisible="{Binding RestartRequired}" />
+                            <Border Classes="RestartMark"
+                                    IsVisible="{Binding RestartRequired}">
+                                <TextBlock Text="重启生效" />
+                            </Border>
                         </StackPanel>
                         <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
                     </StackPanel>
                     <TextBox Grid.Column="1"
                              Classes="SettingControl"
+                             Width="320"
                              Text="{Binding Value, Mode=TwoWay}"
                              VerticalContentAlignment="Center" />
                 </Grid>
@@ -196,112 +500,151 @@
         <DataTemplate DataType="{x:Type viewModels:ReadOnlySettingViewModel}"
                       x:DataType="viewModels:ReadOnlySettingViewModel">
             <Border Classes="SettingRow">
-                <Grid ColumnDefinitions="*,260" ColumnSpacing="24">
-                    <StackPanel Spacing="5">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+                    <StackPanel Spacing="5" VerticalAlignment="Center">
                         <TextBlock Classes="SettingTitle" Text="{Binding Title}" />
                         <TextBlock Classes="SettingDescription" Text="{Binding Description}" />
                     </StackPanel>
                     <TextBlock Grid.Column="1"
                                Text="{Binding Value}"
-                               Foreground="#AFFFFFFF"
+                               Foreground="#C9CDD4"
+                               FontSize="13"
+                               FontWeight="SemiBold"
                                TextWrapping="Wrap"
+                               HorizontalAlignment="Right"
                                VerticalAlignment="Center" />
                 </Grid>
             </Border>
         </DataTemplate>
     </UserControl.DataTemplates>
 
-    <Border Background="#FA18191C">
-            <Grid ColumnDefinitions="184,*" RowDefinitions="72,*">
-                <Border Grid.RowSpan="2"
-                        Background="#FF111215"
-                        BorderBrush="#18FFFFFF"
-                        BorderThickness="0,0,1,0"
-                        CornerRadius="8,0,0,8">
-                    <Grid RowDefinitions="72,*">
-                        <TextBlock Text="Reikou 设置"
-                                   Margin="22,0"
-                                   Foreground="#F2FFFFFF"
-                                   FontSize="18"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center" />
-                        <ListBox Grid.Row="1"
-                                 Classes="SettingsNavigation"
-                                 ItemsSource="{Binding Categories}"
-                                 SelectedItem="{Binding SelectedCategory, Mode=TwoWay}">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="viewModels:SettingsCategoryViewModel">
-                                    <TextBlock Text="{Binding Title}"
-                                               Foreground="#D9FFFFFF"
-                                               FontSize="14"
-                                               VerticalAlignment="Center" />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Column="1"
-                        BorderBrush="#18FFFFFF"
-                        BorderThickness="0,0,0,1">
-                    <Grid ColumnDefinitions="*,320,Auto" ColumnSpacing="16" Margin="28,0,20,0">
-                        <TextBlock Text="{Binding ContentTitle}"
-                                   Foreground="#F2FFFFFF"
-                                   FontSize="20"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center" />
-                        <Grid Grid.Column="1" VerticalAlignment="Center">
-                            <TextBox Text="{Binding SearchText, Mode=TwoWay}"
-                                     PlaceholderText="搜索设置"
-                                     Padding="36,8,10,8" />
-                            <Svg Path="avares://Reikou/Assets/ico-search.svg"
-                                 Width="17"
-                                 Height="17"
-                                 Margin="11,0,0,0"
-                                 HorizontalAlignment="Left"
-                                 VerticalAlignment="Center"
-                                 IsHitTestVisible="False" />
-                        </Grid>
-                        <Button Grid.Column="2"
-                                Command="{Binding CloseCommand}"
-                                Classes="IconButton"
-                                Width="36"
-                                Height="36"
-                                Padding="0"
-                                ToolTip.Tip="关闭设置">
-                            <TextBlock Text="×"
-                                       FontSize="24"
-                                       Foreground="#D9FFFFFF"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
-                        </Button>
-                    </Grid>
-                </Border>
-
-                <Grid Grid.Column="1" Grid.Row="1" RowDefinitions="Auto,Auto,*">
-                    <TextBlock Text="{Binding ContentDescription}"
-                               Margin="28,20,28,0"
-                               Foreground="#8FFFFFFF"
+    <Grid ColumnDefinitions="240,*" Background="#17191F">
+        <!-- 左侧分类导航 -->
+        <Border Background="#12141A"
+                BorderBrush="#0FFFFFFF"
+                BorderThickness="0,0,1,0">
+            <Grid RowDefinitions="Auto,*">
+                <StackPanel Margin="22,30,22,16" Spacing="3">
+                    <TextBlock Text="设置"
+                               Foreground="#F2F4F8"
+                               FontSize="21"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="Reikou 播放器"
+                               Foreground="#6E7580"
                                FontSize="12" />
-                    <Border Grid.Row="1"
-                            Margin="28,14,28,0"
-                            Padding="12,9"
-                            Background="#29F5B942"
-                            BorderBrush="#55F5B942"
-                            BorderThickness="1"
-                            CornerRadius="5"
-                            IsVisible="{Binding IsRestartRequired}">
-                        <TextBlock Text="部分初始化设置已更改，将在重新启动 Reikou 后生效。"
-                                   Foreground="#FFF0C96B"
-                                   FontSize="12" />
-                    </Border>
-                    <ScrollViewer Grid.Row="2"
-                                  Margin="28,8,20,20"
-                                  HorizontalScrollBarVisibility="Disabled"
-                                  VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding VisibleOptions}" />
-                    </ScrollViewer>
+                </StackPanel>
+                <ListBox Grid.Row="1"
+                         Classes="SettingsNavigation"
+                         ItemsSource="{Binding Categories}"
+                         SelectedItem="{Binding SelectedCategory, Mode=TwoWay}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:SettingsCategoryViewModel">
+                            <Grid Height="40">
+                                <Border Width="3"
+                                        Height="16"
+                                        Margin="5,0,0,0"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        Background="#60A5FA"
+                                        CornerRadius="1.5"
+                                        IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+                                <TextBlock Text="{Binding Title}"
+                                           FontSize="14"
+                                           VerticalAlignment="Center"
+                                           Margin="16,0,12,0" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!-- 右侧内容区 -->
+        <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+            <Grid Margin="36,32,36,0" ColumnDefinitions="*,Auto">
+                <StackPanel Margin="0,0,28,0" Spacing="7" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ContentTitle}"
+                               Foreground="#F2F4F8"
+                               FontSize="22"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding ContentDescription}"
+                               Foreground="#9AA1AB"
+                               FontSize="12.5"
+                               TextWrapping="Wrap"
+                               MaxWidth="560" />
+                </StackPanel>
+                <Grid Grid.Column="1" Width="300" VerticalAlignment="Center">
+                    <TextBox Text="{Binding SearchText, Mode=TwoWay}"
+                             Classes="SearchBox"
+                             PlaceholderText="搜索设置" />
+                    <PathIcon Width="15"
+                              Height="15"
+                              Margin="14,0,0,0"
+                              HorizontalAlignment="Left"
+                              VerticalAlignment="Center"
+                              IsHitTestVisible="False"
+                              Foreground="#6E7580"
+                              Data="M10 .5a9.5 9.5 0 1 0 0 19c2.082 0 4.008-.67 5.573-1.806l4.72 4.72a1 1 0 0 0 1.414 0l.707-.707a1 1 0 0 0 0-1.414l-4.72-4.72A9.46 9.46 0 0 0 19.5 10 9.5 9.5 0 0 0 10 .5M3.5 10a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0" />
                 </Grid>
             </Grid>
-    </Border>
+
+            <Border Grid.Row="1"
+                    Margin="36,20,36,0"
+                    Padding="14,11"
+                    Background="#14F5B942"
+                    BorderBrush="#38F5B942"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    IsVisible="{Binding IsRestartRequired}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <PathIcon Width="16"
+                              Height="16"
+                              Foreground="#F5B942"
+                              VerticalAlignment="Center"
+                              Data="M12 3c.6 0 1.2.3 1.5.9l8 14c.7 1.2-.2 2.6-1.5 2.6H4c-1.3 0-2.2-1.4-1.5-2.6l8-14c.3-.6.9-.9 1.5-.9zM11 9.5v5h2v-5h-2zm0 7v2h2v-2h-2z" />
+                    <TextBlock Text="部分初始化设置已更改，将在重新启动 Reikou 后生效。"
+                               Foreground="#F5B942"
+                               FontSize="12.5"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <Panel Grid.Row="2" Margin="0,20,0,0">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto">
+                    <Grid MaxWidth="880"
+                          Margin="36,0,36,32"
+                          HorizontalAlignment="Center">
+                        <ItemsControl ItemsSource="{Binding VisibleOptions}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="8" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </Grid>
+                </ScrollViewer>
+                <StackPanel IsVisible="{Binding !HasVisibleOptions}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="10">
+                    <PathIcon Width="40"
+                              Height="40"
+                              HorizontalAlignment="Center"
+                              Foreground="#3A3F4A"
+                              Data="M10 .5a9.5 9.5 0 1 0 0 19c2.082 0 4.008-.67 5.573-1.806l4.72 4.72a1 1 0 0 0 1.414 0l.707-.707a1 1 0 0 0 0-1.414l-4.72-4.72A9.46 9.46 0 0 0 19.5 10 9.5 9.5 0 0 0 10 .5M3.5 10a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0" />
+                    <TextBlock Text="未找到匹配的设置"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               Foreground="#9AA1AB"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="尝试更换关键字，或从左侧分类中浏览"
+                               FontSize="12.5"
+                               Foreground="#6E7580"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+            </Panel>
+        </Grid>
+    </Grid>
 </UserControl>
