@@ -9,5 +9,5 @@ public enum MpvLogLevel
     Info  = 40,
     V     = 50,
     Debug = 60,
-    Trace = 70,
+    Trace = 70
 }

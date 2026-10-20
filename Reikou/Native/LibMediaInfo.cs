@@ -1,5 +1,4 @@
 using Microsoft.Win32.SafeHandles;
-using System;
 using System.Runtime.InteropServices;
 
 namespace Reikou.Native;
@@ -7,6 +6,24 @@ namespace Reikou.Native;
 internal static partial class LibMediaInfo
 {
     private const string MediaInfoLibraryName = "MediaInfo";
+
+    public static MediaInfoHandle Create() => new(MediaInfoNew());
+
+    public static bool Open(MediaInfoHandle handle, string filePath)
+    {
+        var opened = MediaInfoOpen(handle, filePath) != 0;
+        if (opened) handle.MarkOpened();
+
+        return opened;
+    }
+
+    public static string GetGeneral(MediaInfoHandle handle, string parameter)
+    {
+        var value = MediaInfoGet(handle, MediaInfoStreamKind.General, 0, parameter, MediaInfoInfoKind.Text,
+                                 MediaInfoInfoKind.Name);
+
+        return value == nint.Zero ? string.Empty : Marshal.PtrToStringUni(value) ?? string.Empty;
+    }
 
     [LibraryImport(MediaInfoLibraryName, EntryPoint = "MediaInfo_New")]
     private static partial nint MediaInfoNew();
@@ -25,30 +42,6 @@ internal static partial class LibMediaInfo
     [LibraryImport(MediaInfoLibraryName, EntryPoint = "MediaInfo_Delete")]
     private static partial void MediaInfoDelete(nint handle);
 
-    public static MediaInfoHandle Create()
-    {
-        return new MediaInfoHandle(MediaInfoNew());
-    }
-
-    public static bool Open(MediaInfoHandle handle, string filePath)
-    {
-        var opened = MediaInfoOpen(handle, filePath) != 0;
-        if (opened)
-        {
-            handle.MarkOpened();
-        }
-
-        return opened;
-    }
-
-    public static string GetGeneral(MediaInfoHandle handle, string parameter)
-    {
-        var value = MediaInfoGet(handle, MediaInfoStreamKind.General, 0, parameter, MediaInfoInfoKind.Text,
-                                 MediaInfoInfoKind.Name);
-
-        return value == nint.Zero ? string.Empty : Marshal.PtrToStringUni(value) ?? string.Empty;
-    }
-
     internal sealed class MediaInfoHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         private bool _opened;
@@ -65,10 +58,7 @@ internal static partial class LibMediaInfo
 
         protected override bool ReleaseHandle()
         {
-            if (_opened)
-            {
-                MediaInfoClose(handle);
-            }
+            if (_opened) MediaInfoClose(handle);
 
             MediaInfoDelete(handle);
             return true;

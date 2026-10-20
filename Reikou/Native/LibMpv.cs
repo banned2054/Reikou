@@ -9,133 +9,27 @@ namespace Reikou.Native;
 
 public static partial class LibMpv
 {
-    public const string MpvLibraryName = "mpv";
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_create")]
-    private static partial nint MpvCreate();
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_create_client", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial nint MpvCreateClient(nint mpvHandle, string command);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_initialize")]
-    private static partial MpvStatus MpvInitialize(nint mpvHandle);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_destroy")]
-    private static partial void MpvDestroy(nint mpvHandle);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_command")]
-    private static partial MpvStatus MpvCommand(nint mpvHandle, nint strings);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_command_ret")]
-    private static partial MpvStatus MpvCommandRet(nint mpvHandle, nint strings, nint node);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_free_node_contents")]
-    private static partial void MpvFreeNodeContents(nint node);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_error_string")]
-    private static partial nint MpvErrorString(MpvStatus status);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_request_log_messages", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial MpvStatus MpvRequestLogMessages(nint mpvHandle, string minLevel);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_option", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial int MpvSetOption(nint mpvHandle, string name, MpvFormat format, ref long data);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_option", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial int MpvSetOption(nint mpvHandle, string name, MpvFormat format, ref double data);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_option_string", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial int MpvSetOptionString(nint mpvHandle, string name, string value);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_get_property", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial MpvStatus MpvGetProperty(nint mpvHandle, string name, MpvFormat format, out nint data);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_get_property", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial MpvStatus MpvGetProperty(nint mpvHandle, string name, MpvFormat format, out int data);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_get_property", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial MpvStatus MpvGetProperty(nint mpvHandle, string name, MpvFormat format, out long data);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_get_property", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial MpvStatus MpvGetProperty(nint mpvHandle, string name, MpvFormat format, out double data);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_property", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial MpvStatus MpvSetProperty(nint mpvHandle, string name, MpvFormat format, ref string data);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_property", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial MpvStatus MpvSetProperty(nint mpvHandle, string name, MpvFormat format, ref int data);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_property", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial MpvStatus MpvSetProperty(nint mpvHandle, string name, MpvFormat format, ref long data);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_property", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial MpvStatus MpvSetProperty(nint mpvHandle, string name, MpvFormat format, ref double data);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_observe_property", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial MpvStatus MpvObserveProperty(nint      mpvHandle, ulong replyUserdata, string name,
-                                                        MpvFormat format);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_unobserve_property")]
-    private static partial int MpvUnobserveProperty(nint mpvHandle, ulong registeredReplyUserdata);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_free")]
-    private static partial void MpvFree(nint data);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_wait_event")]
-    private static partial nint MpvWaitEvent(nint mpvHandle, double timeout);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_request_event")]
-    private static partial MpvStatus MpvRequestEvent(nint mpvHandle, MpvEventId id, int enable);
-
-    // --- 这里恢复原版，使用 ReadOnlySpan ---
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_create")]
-    private static partial MpvStatus MpvRenderContextCreate(out nint                     res, nint mpvHandle,
-                                                            ReadOnlySpan<MpvRenderParam> paramsArray);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_set_parameter")]
-    private static partial MpvStatus MpvRenderContextSetParameter(nint ctx, MpvRenderParam param);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_get_info")]
-    private static partial MpvStatus MpvRenderContextGetInfo(nint ctx, MpvRenderParam param);
-
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_set_update_callback")]
-    private static partial void MpvRenderContextSetUpdateCallback(nint ctx, MpvRenderUpdateFn callback,
-                                                                  nint callbackCtx);
-
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_free")]
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    private static partial void MpvRenderContextFree(nint ctx);
-
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_render")]
-    private static partial MpvStatus MpvRenderContextRender(nint ctx, ReadOnlySpan<MpvRenderParam> paramsArray);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate nint MpvGetProcAddressFn(nint ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void MpvRenderUpdateFn(nint callbackContext);
 
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate nint MpvGetProcAddressFn(nint ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
-
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_update")]
-    private static partial MpvRenderUpdateFlag MpvRenderContextUpdate(nint ctx);
-
+    public const string MpvLibraryName = "mpv";
 
     // --- 包装方法 ---
-    public static nint      Create()                                      => MpvCreate();
-    public static nint      CreateClient(nint  mpvHandle, string command) => MpvCreateClient(mpvHandle, command);
-    public static MpvStatus Initialize(nint    mpvHandle)                 => MpvInitialize(mpvHandle);
-    public static void      Destroy(nint       mpvHandle)                 => MpvDestroy(mpvHandle);
+    public static nint Create() => MpvCreate();
+
+    public static nint CreateClient(nint mpvHandle, string command) => MpvCreateClient(mpvHandle, command);
+
+    public static MpvStatus Initialize(nint mpvHandle) => MpvInitialize(mpvHandle);
+
+    public static void Destroy(nint mpvHandle) => MpvDestroy(mpvHandle);
 
     public static MpvStatus Command(nint mpvHandle, params string[] arguments)
     {
         ArgumentNullException.ThrowIfNull(arguments);
-        if (arguments.Length == 0)
-        {
-            return MpvStatus.InvalidParameter;
-        }
+        if (arguments.Length == 0) return MpvStatus.InvalidParameter;
 
         using var nativeArguments = new Utf8StringArray(arguments);
         return MpvCommand(mpvHandle, nativeArguments.Pointer);
@@ -235,34 +129,137 @@ public static partial class LibMpv
     public static string GetError(MpvStatus  err) => ConvertFromUtf8(ErrorString(err));
     public static byte[] GetUtf8Bytes(string s)   => Encoding.UTF8.GetBytes(s + "\0");
 
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_create")]
+    private static partial nint MpvCreate();
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_create_client", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial nint MpvCreateClient(nint mpvHandle, string command);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_initialize")]
+    private static partial MpvStatus MpvInitialize(nint mpvHandle);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_destroy")]
+    private static partial void MpvDestroy(nint mpvHandle);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_command")]
+    private static partial MpvStatus MpvCommand(nint mpvHandle, nint strings);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_command_ret")]
+    private static partial MpvStatus MpvCommandRet(nint mpvHandle, nint strings, nint node);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_free_node_contents")]
+    private static partial void MpvFreeNodeContents(nint node);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_error_string")]
+    private static partial nint MpvErrorString(MpvStatus status);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_request_log_messages", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial MpvStatus MpvRequestLogMessages(nint mpvHandle, string minLevel);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_option", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int MpvSetOption(nint mpvHandle, string name, MpvFormat format, ref long data);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_option", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int MpvSetOption(nint mpvHandle, string name, MpvFormat format, ref double data);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_option_string", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int MpvSetOptionString(nint mpvHandle, string name, string value);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_get_property", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial MpvStatus MpvGetProperty(nint mpvHandle, string name, MpvFormat format, out nint data);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_get_property", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial MpvStatus MpvGetProperty(nint mpvHandle, string name, MpvFormat format, out int data);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_get_property", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial MpvStatus MpvGetProperty(nint mpvHandle, string name, MpvFormat format, out long data);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_get_property", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial MpvStatus MpvGetProperty(nint mpvHandle, string name, MpvFormat format, out double data);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_property", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial MpvStatus MpvSetProperty(nint mpvHandle, string name, MpvFormat format, ref string data);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_property", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial MpvStatus MpvSetProperty(nint mpvHandle, string name, MpvFormat format, ref int data);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_property", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial MpvStatus MpvSetProperty(nint mpvHandle, string name, MpvFormat format, ref long data);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_set_property", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial MpvStatus MpvSetProperty(nint mpvHandle, string name, MpvFormat format, ref double data);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_observe_property", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial MpvStatus MpvObserveProperty(
+        nint mpvHandle, ulong replyUserdata, string name, MpvFormat format);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_unobserve_property")]
+    private static partial int MpvUnobserveProperty(nint mpvHandle, ulong registeredReplyUserdata);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_free")]
+    private static partial void MpvFree(nint data);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_wait_event")]
+    private static partial nint MpvWaitEvent(nint mpvHandle, double timeout);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_request_event")]
+    private static partial MpvStatus MpvRequestEvent(nint mpvHandle, MpvEventId id, int enable);
+
+    // --- 这里恢复原版，使用 ReadOnlySpan ---
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_create")]
+    private static partial MpvStatus MpvRenderContextCreate(
+        out nint res, nint mpvHandle, ReadOnlySpan<MpvRenderParam> paramsArray);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_set_parameter")]
+    private static partial MpvStatus MpvRenderContextSetParameter(nint ctx, MpvRenderParam param);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_get_info")]
+    private static partial MpvStatus MpvRenderContextGetInfo(nint ctx, MpvRenderParam param);
+
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_set_update_callback")]
+    private static partial void MpvRenderContextSetUpdateCallback(
+        nint ctx, MpvRenderUpdateFn callback, nint callbackCtx);
+
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_free")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void MpvRenderContextFree(nint ctx);
+
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_render")]
+    private static partial MpvStatus MpvRenderContextRender(nint ctx, ReadOnlySpan<MpvRenderParam> paramsArray);
+
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [LibraryImport(MpvLibraryName, EntryPoint = "mpv_render_context_update")]
+    private static partial MpvRenderUpdateFlag MpvRenderContextUpdate(nint ctx);
+
     private sealed class Utf8StringArray : IDisposable
     {
         private readonly nint[] _strings;
-        private nint            _pointer;
 
         public Utf8StringArray(string[] arguments)
         {
-            for (var i = 0; i < arguments.Length; i++)
+            foreach (var argument in arguments)
             {
-                ArgumentNullException.ThrowIfNull(arguments[i]);
-                if (arguments[i].Contains('\0'))
-                {
-                    throw new ArgumentException("mpv command arguments cannot contain NUL characters.", nameof(arguments));
-                }
+                ArgumentNullException.ThrowIfNull(argument);
+                if (argument.Contains('\0'))
+                    throw new ArgumentException("mpv command arguments cannot contain NUL characters.",
+                                                nameof(arguments));
             }
 
             _strings = new nint[arguments.Length];
-            _pointer = Marshal.AllocHGlobal(checked((arguments.Length + 1) * nint.Size));
+            Pointer  = Marshal.AllocHGlobal(checked((arguments.Length + 1) * nint.Size));
 
             try
             {
                 for (var i = 0; i < arguments.Length; i++)
                 {
                     _strings[i] = Marshal.StringToCoTaskMemUTF8(arguments[i]);
-                    Marshal.WriteIntPtr(_pointer, i * nint.Size, _strings[i]);
+                    Marshal.WriteIntPtr(Pointer, i * nint.Size, _strings[i]);
                 }
 
-                Marshal.WriteIntPtr(_pointer, arguments.Length * nint.Size, nint.Zero);
+                Marshal.WriteIntPtr(Pointer, arguments.Length * nint.Size, nint.Zero);
             }
             catch
             {
@@ -271,23 +268,17 @@ public static partial class LibMpv
             }
         }
 
-        public nint Pointer => _pointer;
+        public nint Pointer { get; private set; }
 
         public void Dispose()
         {
             foreach (var pointer in _strings)
-            {
                 if (pointer != nint.Zero)
-                {
                     Marshal.FreeCoTaskMem(pointer);
-                }
-            }
 
-            if (_pointer != nint.Zero)
-            {
-                Marshal.FreeHGlobal(_pointer);
-                _pointer = nint.Zero;
-            }
+            if (Pointer == nint.Zero) return;
+            Marshal.FreeHGlobal(Pointer);
+            Pointer = nint.Zero;
         }
     }
 }

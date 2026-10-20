@@ -7,10 +7,10 @@ namespace Reikou.Models;
 
 public class PlaylistItem : INotifyPropertyChanged
 {
-    private string _filePath = string.Empty;
-    private string _title    = string.Empty;
     private double _duration = double.NaN;
+    private string _filePath = string.Empty;
     private bool   _isPlaying;
+    private string _title = string.Empty;
 
     public string FilePath
     {
@@ -30,9 +30,7 @@ public class PlaylistItem : INotifyPropertyChanged
         set
         {
             if (SetField(ref _duration, value))
-            {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DurationText)));
-            }
         }
     }
 

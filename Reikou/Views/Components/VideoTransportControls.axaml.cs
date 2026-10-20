@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using System;
+using System.Windows.Input;
 
 namespace Reikou.Views.Components;
 
@@ -15,14 +16,105 @@ public class VideoTransportControls : TemplatedControl
     public static readonly StyledProperty<double> CurrentTimeProperty =
         AvaloniaProperty.Register<VideoTransportControls, double>(nameof(CurrentTime));
 
+    public static readonly StyledProperty<double> DurationProperty =
+        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(Duration));
+
+    public static readonly StyledProperty<bool> IsPlayingProperty =
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsPlaying));
+
+    public static readonly StyledProperty<string> TimeTextProperty =
+        AvaloniaProperty.Register<VideoTransportControls, string>(nameof(TimeText), "00:00 / 00:00");
+
+    public static readonly StyledProperty<double> PlaybackSpeedProperty =
+        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(PlaybackSpeed), 1.0);
+
+    public static readonly StyledProperty<string> PlaybackSpeedTextProperty =
+        AvaloniaProperty.Register<VideoTransportControls, string>(nameof(PlaybackSpeedText), "倍速");
+
+    public static readonly StyledProperty<double> VolumeProperty =
+        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(Volume), 100.0);
+
+    public static readonly StyledProperty<double> MaximumVolumeProperty =
+        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(MaximumVolume), 130.0);
+
+    public static readonly StyledProperty<bool> IsMutedProperty =
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsMuted));
+
+    public static readonly StyledProperty<bool> IsVolumeFlyoutOpenProperty =
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsVolumeFlyoutOpen));
+
+    public static readonly StyledProperty<bool> IsPointerOverFlyoutProperty =
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsPointerOverFlyout));
+
+    // --- Commands ---
+
+    public static readonly StyledProperty<ICommand?> PlayPauseCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, ICommand?>(nameof(PlayPauseCommand));
+
+    public static readonly StyledProperty<ICommand?> PreviousCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, ICommand?>(nameof(PreviousCommand));
+
+    public static readonly StyledProperty<ICommand?> BackwardCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, ICommand?>(nameof(BackwardCommand));
+
+    public static readonly StyledProperty<ICommand?> ForwardCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, ICommand?>(nameof(ForwardCommand));
+
+    public static readonly StyledProperty<ICommand?> NextCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, ICommand?>(nameof(NextCommand));
+
+    public static readonly StyledProperty<ICommand?> ToggleMuteCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, ICommand?>(nameof(ToggleMuteCommand));
+
+    public static readonly StyledProperty<ICommand?> ToggleDanmakuCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, ICommand?>(nameof(ToggleDanmakuCommand));
+
+    public static readonly StyledProperty<ICommand?> ChangeSpeedCommandProperty =
+        AvaloniaProperty.Register<VideoTransportControls, ICommand?>(nameof(ChangeSpeedCommand));
+
+    public static readonly StyledProperty<ICommand?> ToggleFullscreenCommandProperty =
+        AvaloniaProperty
+           .Register<VideoTransportControls, ICommand?>(nameof(ToggleFullscreenCommand));
+
+    public static readonly StyledProperty<bool> IsFullscreenProperty =
+        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsFullscreen));
+
+    // --- Routed Events ---
+
+    public static readonly RoutedEvent<RoutedEventArgs> SeekStartedEvent =
+        RoutedEvent.Register<VideoTransportControls, RoutedEventArgs>(nameof(SeekStarted), RoutingStrategies.Bubble);
+
+    public static readonly RoutedEvent<RoutedEventArgs> SeekEndedEvent =
+        RoutedEvent.Register<VideoTransportControls, RoutedEventArgs>(nameof(SeekEnded), RoutingStrategies.Bubble);
+
+    public static readonly RoutedEvent<RangeBaseValueChangedEventArgs> SeekMovedEvent =
+        RoutedEvent.Register<VideoTransportControls, RangeBaseValueChangedEventArgs>(nameof(SeekMoved),
+                 RoutingStrategies.Bubble);
+
+    private Button? _backwardButton;
+    private Button? _forwardButton;
+
+    private bool    _isSpeedFlyoutOpen;
+    private Button? _nextButton;
+    private Button? _playPauseButton;
+    private Button? _previousButton;
+    private Button? _speedButton;
+
+    // --- Template Parts ---
+
+    private Slider? _timeSlider;
+
+    private Button? _volumeButton;
+
+    private DispatcherTimer? _volumeCloseTimer;
+    private Border?          _volumePanel;
+    private Popup?           _volumePopup;
+
     public double CurrentTime
     {
         get => GetValue(CurrentTimeProperty);
         set => SetValue(CurrentTimeProperty, value);
     }
-
-    public static readonly StyledProperty<double> DurationProperty =
-        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(Duration));
 
     public double Duration
     {
@@ -30,17 +122,11 @@ public class VideoTransportControls : TemplatedControl
         set => SetValue(DurationProperty, value);
     }
 
-    public static readonly StyledProperty<bool> IsPlayingProperty =
-        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsPlaying));
-
     public bool IsPlaying
     {
         get => GetValue(IsPlayingProperty);
         set => SetValue(IsPlayingProperty, value);
     }
-
-    public static readonly StyledProperty<string> TimeTextProperty =
-        AvaloniaProperty.Register<VideoTransportControls, string>(nameof(TimeText), "00:00 / 00:00");
 
     public string TimeText
     {
@@ -48,17 +134,11 @@ public class VideoTransportControls : TemplatedControl
         set => SetValue(TimeTextProperty, value);
     }
 
-    public static readonly StyledProperty<double> PlaybackSpeedProperty =
-        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(PlaybackSpeed), 1.0);
-
     public double PlaybackSpeed
     {
         get => GetValue(PlaybackSpeedProperty);
         set => SetValue(PlaybackSpeedProperty, value);
     }
-
-    public static readonly StyledProperty<string> PlaybackSpeedTextProperty =
-        AvaloniaProperty.Register<VideoTransportControls, string>(nameof(PlaybackSpeedText), "倍速");
 
     public string PlaybackSpeedText
     {
@@ -66,17 +146,11 @@ public class VideoTransportControls : TemplatedControl
         set => SetValue(PlaybackSpeedTextProperty, value);
     }
 
-    public static readonly StyledProperty<double> VolumeProperty =
-        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(Volume), 100.0);
-
     public double Volume
     {
         get => GetValue(VolumeProperty);
         set => SetValue(VolumeProperty, value);
     }
-
-    public static readonly StyledProperty<double> MaximumVolumeProperty =
-        AvaloniaProperty.Register<VideoTransportControls, double>(nameof(MaximumVolume), 130.0);
 
     public double MaximumVolume
     {
@@ -84,17 +158,11 @@ public class VideoTransportControls : TemplatedControl
         set => SetValue(MaximumVolumeProperty, value);
     }
 
-    public static readonly StyledProperty<bool> IsMutedProperty =
-        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsMuted));
-
     public bool IsMuted
     {
         get => GetValue(IsMutedProperty);
         set => SetValue(IsMutedProperty, value);
     }
-
-    public static readonly StyledProperty<bool> IsVolumeFlyoutOpenProperty =
-        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsVolumeFlyoutOpen));
 
     public bool IsVolumeFlyoutOpen
     {
@@ -102,101 +170,65 @@ public class VideoTransportControls : TemplatedControl
         set => SetValue(IsVolumeFlyoutOpenProperty, value);
     }
 
-    public static readonly StyledProperty<bool> IsPointerOverFlyoutProperty =
-        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsPointerOverFlyout));
-
     public bool IsPointerOverFlyout
     {
         get => GetValue(IsPointerOverFlyoutProperty);
         set => SetValue(IsPointerOverFlyoutProperty, value);
     }
 
-    // --- Commands ---
-
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> PlayPauseCommandProperty =
-        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(PlayPauseCommand));
-
-    public System.Windows.Input.ICommand? PlayPauseCommand
+    public ICommand? PlayPauseCommand
     {
         get => GetValue(PlayPauseCommandProperty);
         set => SetValue(PlayPauseCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> PreviousCommandProperty =
-        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(PreviousCommand));
-
-    public System.Windows.Input.ICommand? PreviousCommand
+    public ICommand? PreviousCommand
     {
         get => GetValue(PreviousCommandProperty);
         set => SetValue(PreviousCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> BackwardCommandProperty =
-        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(BackwardCommand));
-
-    public System.Windows.Input.ICommand? BackwardCommand
+    public ICommand? BackwardCommand
     {
         get => GetValue(BackwardCommandProperty);
         set => SetValue(BackwardCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> ForwardCommandProperty =
-        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ForwardCommand));
-
-    public System.Windows.Input.ICommand? ForwardCommand
+    public ICommand? ForwardCommand
     {
         get => GetValue(ForwardCommandProperty);
         set => SetValue(ForwardCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> NextCommandProperty =
-        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(NextCommand));
-
-    public System.Windows.Input.ICommand? NextCommand
+    public ICommand? NextCommand
     {
         get => GetValue(NextCommandProperty);
         set => SetValue(NextCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleMuteCommandProperty =
-        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ToggleMuteCommand));
-
-    public System.Windows.Input.ICommand? ToggleMuteCommand
+    public ICommand? ToggleMuteCommand
     {
         get => GetValue(ToggleMuteCommandProperty);
         set => SetValue(ToggleMuteCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleDanmakuCommandProperty =
-        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ToggleDanmakuCommand));
-
-    public System.Windows.Input.ICommand? ToggleDanmakuCommand
+    public ICommand? ToggleDanmakuCommand
     {
         get => GetValue(ToggleDanmakuCommandProperty);
         set => SetValue(ToggleDanmakuCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> ChangeSpeedCommandProperty =
-        AvaloniaProperty.Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ChangeSpeedCommand));
-
-    public System.Windows.Input.ICommand? ChangeSpeedCommand
+    public ICommand? ChangeSpeedCommand
     {
         get => GetValue(ChangeSpeedCommandProperty);
         set => SetValue(ChangeSpeedCommandProperty, value);
     }
 
-    public static readonly StyledProperty<System.Windows.Input.ICommand?> ToggleFullscreenCommandProperty =
-        AvaloniaProperty
-           .Register<VideoTransportControls, System.Windows.Input.ICommand?>(nameof(ToggleFullscreenCommand));
-
-    public System.Windows.Input.ICommand? ToggleFullscreenCommand
+    public ICommand? ToggleFullscreenCommand
     {
         get => GetValue(ToggleFullscreenCommandProperty);
         set => SetValue(ToggleFullscreenCommandProperty, value);
     }
-
-    public static readonly StyledProperty<bool> IsFullscreenProperty =
-        AvaloniaProperty.Register<VideoTransportControls, bool>(nameof(IsFullscreen));
 
     public bool IsFullscreen
     {
@@ -204,19 +236,11 @@ public class VideoTransportControls : TemplatedControl
         set => SetValue(IsFullscreenProperty, value);
     }
 
-    // --- Routed Events ---
-
-    public static readonly RoutedEvent<RoutedEventArgs> SeekStartedEvent =
-        RoutedEvent.Register<VideoTransportControls, RoutedEventArgs>(nameof(SeekStarted), RoutingStrategies.Bubble);
-
     public event EventHandler<RoutedEventArgs> SeekStarted
     {
         add => AddHandler(SeekStartedEvent, value);
         remove => RemoveHandler(SeekStartedEvent, value);
     }
-
-    public static readonly RoutedEvent<RoutedEventArgs> SeekEndedEvent =
-        RoutedEvent.Register<VideoTransportControls, RoutedEventArgs>(nameof(SeekEnded), RoutingStrategies.Bubble);
 
     public event EventHandler<RoutedEventArgs> SeekEnded
     {
@@ -224,30 +248,19 @@ public class VideoTransportControls : TemplatedControl
         remove => RemoveHandler(SeekEndedEvent, value);
     }
 
-    public static readonly RoutedEvent<RangeBaseValueChangedEventArgs> SeekMovedEvent =
-        RoutedEvent.Register<VideoTransportControls, RangeBaseValueChangedEventArgs>(nameof(SeekMoved),
-                 RoutingStrategies.Bubble);
-
     public event EventHandler<RangeBaseValueChangedEventArgs> SeekMoved
     {
         add => AddHandler(SeekMovedEvent, value);
         remove => RemoveHandler(SeekMovedEvent, value);
     }
 
-    // --- Template Parts ---
-
-    private Slider?          _timeSlider;
-    private Button?          _previousButton;
-    private Button?          _backwardButton;
-    private Button?          _playPauseButton;
-    private Button?          _forwardButton;
-    private Button?          _nextButton;
-    private Button?          _volumeButton;
-    private Popup?           _volumePopup;
-    private Border?          _volumePanel;
-    private Button?          _speedButton;
-    private DispatcherTimer? _volumeCloseTimer;
-    private bool             _isSpeedFlyoutOpen;
+    public void HideFlyouts()
+    {
+        CancelPendingVolumeClose();
+        IsVolumeFlyoutOpen = false;
+        UpdatePointerOverFlyoutState();
+        _speedButton?.Flyout?.Hide();
+    }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
@@ -318,25 +331,13 @@ public class VideoTransportControls : TemplatedControl
             _volumePanel.PointerExited  += OnVolumePanelPointerExited;
         }
 
-        if (_speedButton is { Flyout: not null })
-        {
-            _speedButton.Flyout.Opened += OnSpeedFlyoutOpened;
-            _speedButton.Flyout.Closed += OnSpeedFlyoutClosed;
+        if (_speedButton is not { Flyout: not null }) return;
+        _speedButton.Flyout.Opened += OnSpeedFlyoutOpened;
+        _speedButton.Flyout.Closed += OnSpeedFlyoutClosed;
 
-            if (_speedButton.Flyout is Flyout { Content: Control content3 })
-            {
-                content3.PointerEntered += OnFlyoutContentPointerEntered;
-                content3.PointerExited  += OnFlyoutContentPointerExited;
-            }
-        }
-    }
-
-    public void HideFlyouts()
-    {
-        CancelPendingVolumeClose();
-        IsVolumeFlyoutOpen = false;
-        UpdatePointerOverFlyoutState();
-        _speedButton?.Flyout?.Hide();
+        if (_speedButton.Flyout is not Flyout { Content: Control content3 }) return;
+        content3.PointerEntered += OnFlyoutContentPointerEntered;
+        content3.PointerExited  += OnFlyoutContentPointerExited;
     }
 
     private void OnFlyoutContentPointerEntered(object? sender, PointerEventArgs e)

@@ -9,8 +9,8 @@ using System.Threading.Tasks;
 namespace Reikou.Views.Controls;
 
 /// <summary>
-/// Keeps its child at a stable logical size while the host is being resized and
-/// previews the new size through a compositor-backed render transform.
+///     Keeps its child at a stable logical size while the host is being resized and
+///     previews the new size through a compositor-backed render transform.
 /// </summary>
 public sealed class LiveResizeViewportHost : Decorator
 {
@@ -18,17 +18,11 @@ public sealed class LiveResizeViewportHost : Decorator
 
     private readonly DispatcherTimer _resizeEndTimer;
 
+    private bool _commitOnNextArrange;
     private Size _committedSize;
     private Size _displaySize;
-    private bool _commitOnNextArrange;
     private bool _platformLiveResizeActive;
     private int  _resizeGeneration;
-
-#if DEBUG
-    private int  _previewSizeChangeCount;
-    private int  _arrangeCount;
-    private long _arrangeElapsedTicks;
-#endif
 
     public LiveResizeViewportHost()
     {
@@ -48,8 +42,8 @@ public sealed class LiveResizeViewportHost : Decorator
     }
 
     /// <summary>
-    /// Starts a platform-reported interactive resize session. While active, the
-    /// fallback debounce cannot commit an intermediate framebuffer size.
+    ///     Starts a platform-reported interactive resize session. While active, the
+    ///     fallback debounce cannot commit an intermediate framebuffer size.
     /// </summary>
     public void BeginLiveResize()
     {
@@ -59,15 +53,12 @@ public sealed class LiveResizeViewportHost : Decorator
     }
 
     /// <summary>
-    /// Ends a platform-reported interactive resize session and commits the last
-    /// display size once.
+    ///     Ends a platform-reported interactive resize session and commits the last
+    ///     display size once.
     /// </summary>
     public void EndLiveResize()
     {
-        if (!_platformLiveResizeActive)
-        {
-            return;
-        }
+        if (!_platformLiveResizeActive) return;
 
         _platformLiveResizeActive = false;
         _resizeEndTimer.Stop();
@@ -75,24 +66,21 @@ public sealed class LiveResizeViewportHost : Decorator
     }
 
     /// <summary>
-    /// Updates the compositor preview directly from the top-level client size,
-    /// without waiting for the next layout pass.
+    ///     Updates the compositor preview directly from the top-level client size,
+    ///     without waiting for the next layout pass.
     /// </summary>
     public void PreviewDisplaySize(Size displaySize)
     {
         EnsureInitialSize(displaySize);
-        if (!IsValidSize(displaySize) || !IsValidSize(_committedSize))
-        {
-            return;
-        }
+        if (!IsValidSize(displaySize) || !IsValidSize(_committedSize)) return;
 
         UpdateDisplaySize(displaySize);
-        ApplyPreviewTransform(requestCommit : true);
+        ApplyPreviewTransform(true);
     }
 
     /// <summary>
-    /// Commits the size received by the next layout pass without waiting for the
-    /// live-resize debounce. Used for maximize, restore, fullscreen and DPI changes.
+    ///     Commits the size received by the next layout pass without waiting for the
+    ///     live-resize debounce. Used for maximize, restore, fullscreen and DPI changes.
     /// </summary>
     public void CommitOnNextArrange()
     {
@@ -106,10 +94,7 @@ public sealed class LiveResizeViewportHost : Decorator
     {
         EnsureInitialSize(availableSize);
 
-        if (Child != null && IsValidSize(_committedSize))
-        {
-            Child.Measure(_committedSize);
-        }
+        if (Child != null && IsValidSize(_committedSize)) Child.Measure(_committedSize);
 
         return availableSize;
     }
@@ -121,24 +106,21 @@ public sealed class LiveResizeViewportHost : Decorator
 #endif
         EnsureInitialSize(finalSize);
 
-        if (!IsValidSize(finalSize) || Child == null || !IsValidSize(_committedSize))
-        {
-            return finalSize;
-        }
+        if (!IsValidSize(finalSize) || Child == null || !IsValidSize(_committedSize)) return finalSize;
 
         UpdateDisplaySize(finalSize);
 
         if (_commitOnNextArrange)
         {
             _commitOnNextArrange = false;
-            CommitDisplaySize(invalidateLayout : true);
+            CommitDisplaySize(true);
         }
 
         // Keep the child at one stable layout rectangle. The compositor stretches
         // that continuously rendered surface to the live window size, so neither
         // mpv's FBO nor the danmaku viewport is resized until the final commit.
         Child.Arrange(new Rect(_committedSize));
-        ApplyPreviewTransform(requestCommit : false);
+        ApplyPreviewTransform(false);
 
 #if DEBUG
         _arrangeElapsedTicks += Stopwatch.GetTimestamp() - arrangeStarted;
@@ -156,28 +138,16 @@ public sealed class LiveResizeViewportHost : Decorator
 
     private void EnsureInitialSize(Size size)
     {
-        if (!IsValidSize(size))
-        {
-            return;
-        }
+        if (!IsValidSize(size)) return;
 
-        if (!IsValidSize(_committedSize))
-        {
-            _committedSize = size;
-        }
+        if (!IsValidSize(_committedSize)) _committedSize = size;
 
-        if (!IsValidSize(_displaySize))
-        {
-            _displaySize = size;
-        }
+        if (!IsValidSize(_displaySize)) _displaySize = size;
     }
 
     private void RestartResizeEndTimer()
     {
-        if (_platformLiveResizeActive)
-        {
-            return;
-        }
+        if (_platformLiveResizeActive) return;
 
         _resizeEndTimer.Stop();
         _resizeEndTimer.Start();
@@ -187,10 +157,7 @@ public sealed class LiveResizeViewportHost : Decorator
     {
         _resizeEndTimer.Stop();
 
-        if (_platformLiveResizeActive)
-        {
-            return;
-        }
+        if (_platformLiveResizeActive) return;
 
         QueueCommitAfterPreview(_resizeGeneration, _displaySize);
     }
@@ -199,19 +166,14 @@ public sealed class LiveResizeViewportHost : Decorator
     {
         _resizeEndTimer.Stop();
 
-        if (!IsValidSize(_displaySize) || AreClose(_committedSize, _displaySize))
-        {
-            return;
-        }
+        if (!IsValidSize(_displaySize) || AreClose(_committedSize, _displaySize)) return;
 
 #if DEBUG
         var arrangeMilliseconds = _arrangeElapsedTicks * 1000.0 / Stopwatch.Frequency;
-        Debug.WriteLine(
-                        $"[LiveResize] committed {_committedSize.Width:0.#}x{_committedSize.Height:0.#} " +
+        Debug.WriteLine($"[LiveResize] committed {_committedSize.Width:0.#}x{_committedSize.Height:0.#} " +
                         $"-> {_displaySize.Width:0.#}x{_displaySize.Height:0.#}; "                        +
                         $"preview changes={_previewSizeChangeCount}; arrange calls={_arrangeCount}; "     +
-                        $"arrange total={arrangeMilliseconds:0.00}ms"
-                       );
+                        $"arrange total={arrangeMilliseconds:0.00}ms");
         _previewSizeChangeCount = 0;
         _arrangeCount           = 0;
         _arrangeElapsedTicks    = 0;
@@ -220,32 +182,23 @@ public sealed class LiveResizeViewportHost : Decorator
         _committedSize = _displaySize;
         ResetPreviewTransform();
 
-        if (invalidateLayout)
-        {
-            InvalidateMeasure();
-            InvalidateArrange();
-        }
+        if (!invalidateLayout) return;
+        InvalidateMeasure();
+        InvalidateArrange();
     }
 
     private void UpdateDisplaySize(Size displaySize)
     {
-        if (AreClose(_displaySize, displaySize))
-        {
-            return;
-        }
+        if (AreClose(_displaySize, displaySize)) return;
 
         _displaySize = displaySize;
 #if DEBUG
         _previewSizeChangeCount++;
 #endif
         if (AreClose(_displaySize, _committedSize))
-        {
             _resizeEndTimer.Stop();
-        }
         else
-        {
             RestartResizeEndTimer();
-        }
     }
 
     private void QueueCommitAfterPreview(int generation, Size expectedDisplaySize)
@@ -257,14 +210,11 @@ public sealed class LiveResizeViewportHost : Decorator
             return;
         }
 
-        ApplyPreviewTransform(requestCommit : false);
+        ApplyPreviewTransform(false);
         _ = CommitAfterPreviewAsync(visual, generation, expectedDisplaySize);
     }
 
-    private async Task CommitAfterPreviewAsync(
-        CompositionVisual visual,
-        int               generation,
-        Size              expectedDisplaySize)
+    private async Task CommitAfterPreviewAsync(CompositionVisual visual, int generation, Size expectedDisplaySize)
     {
         try
         {
@@ -275,10 +225,8 @@ public sealed class LiveResizeViewportHost : Decorator
             return;
         }
 
-        Dispatcher.UIThread.Post(
-                                 () => QueueCommitOnNextArrange(generation, expectedDisplaySize),
-                                 DispatcherPriority.Render
-                                );
+        Dispatcher.UIThread.Post(() => QueueCommitOnNextArrange(generation, expectedDisplaySize),
+                                 DispatcherPriority.Render);
     }
 
     private void QueueCommitOnNextArrange(int generation, Size expectedDisplaySize)
@@ -286,9 +234,7 @@ public sealed class LiveResizeViewportHost : Decorator
         if (_platformLiveResizeActive       ||
             generation != _resizeGeneration ||
             !AreClose(_displaySize, expectedDisplaySize))
-        {
             return;
-        }
 
         _commitOnNextArrange = true;
         InvalidateArrange();
@@ -296,31 +242,19 @@ public sealed class LiveResizeViewportHost : Decorator
 
     private void ApplyPreviewTransform(bool requestCommit)
     {
-        if (Child == null)
-        {
-            return;
-        }
+        if (Child == null) return;
 
         var visual = ElementComposition.GetElementVisual(Child);
-        if (visual == null)
-        {
-            return;
-        }
+        if (visual == null) return;
 
-        var scale = Math.Min(
-                             _displaySize.Width  / _committedSize.Width,
-                             _displaySize.Height / _committedSize.Height
-                            );
-        var offsetX = (_displaySize.Width  - _committedSize.Width  * scale) / 2;
+        var scale   = Math.Min(_displaySize.Width / _committedSize.Width, _displaySize.Height / _committedSize.Height);
+        var offsetX = (_displaySize.Width  - _committedSize.Width * scale) / 2;
         var offsetY = (_displaySize.Height - _committedSize.Height * scale) / 2;
 
         visual.Scale       = new Vector3D(scale, scale, 1);
         visual.Translation = new Vector3D(offsetX, offsetY, 0);
 
-        if (requestCommit)
-        {
-            _ = RequestCommitIgnoringDisposalAsync(visual.Compositor);
-        }
+        if (requestCommit) _ = RequestCommitIgnoringDisposalAsync(visual.Compositor);
     }
 
     private static async Task RequestCommitIgnoringDisposalAsync(Compositor compositor)
@@ -337,30 +271,25 @@ public sealed class LiveResizeViewportHost : Decorator
 
     private void ResetPreviewTransform()
     {
-        if (Child == null)
-        {
-            return;
-        }
+        if (Child == null) return;
 
         var visual = ElementComposition.GetElementVisual(Child);
-        if (visual == null)
-        {
-            return;
-        }
+        if (visual == null) return;
 
         visual.Scale       = new Vector3D(1, 1, 1);
         visual.Translation = default;
     }
 
-    private static bool IsValidSize(Size size)
-    {
-        return double.IsFinite(size.Width) && double.IsFinite(size.Height) &&
-               size.Width > 0              && size.Height > 0;
-    }
+    private static bool IsValidSize(Size size) => double.IsFinite(size.Width)  &&
+                                                  double.IsFinite(size.Height) &&
+                                                  size is { Width: > 0, Height: > 0 };
 
-    private static bool AreClose(Size left, Size right)
-    {
-        return Math.Abs(left.Width  - right.Width)  < 0.01 &&
-               Math.Abs(left.Height - right.Height) < 0.01;
-    }
+    private static bool AreClose(Size left, Size right) => Math.Abs(left.Width - right.Width) < 0.01 &&
+                                                           Math.Abs(left.Height - right.Height) < 0.01;
+
+#if DEBUG
+    private int  _previewSizeChangeCount;
+    private int  _arrangeCount;
+    private long _arrangeElapsedTicks;
+#endif
 }

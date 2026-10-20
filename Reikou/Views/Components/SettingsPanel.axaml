@@ -5,54 +5,10 @@
              x:DataType="viewModels:SettingsViewModel">
     <UserControl.Resources>
         <!-- 强调色：蓝色系，覆盖 Fluent 资源键后 ToggleSwitch / Slider / 焦点框等统一生效 -->
-        <Color x:Key="SystemAccentColor">#3B82F6</Color>
-        <Color x:Key="SystemAccentColorLight1">#60A5FA</Color>
-        <Color x:Key="SystemAccentColorLight2">#93C5FD</Color>
-        <Color x:Key="SystemAccentColorLight3">#BFDBFE</Color>
-        <Color x:Key="SystemAccentColorDark1">#2563EB</Color>
-        <Color x:Key="SystemAccentColorDark2">#1D4ED8</Color>
-        <Color x:Key="SystemAccentColorDark3">#1E40AF</Color>
 
         <!-- ToggleSwitch 配色（Dark 变体资源键覆盖） -->
-        <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#00000000" />
-        <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#54FFFFFF" />
-        <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#A6ADB8" />
-        <SolidColorBrush x:Key="ToggleSwitchFillOffPointerOver" Color="#0FFFFFFF" />
-        <SolidColorBrush x:Key="ToggleSwitchStrokeOffPointerOver" Color="#8AFFFFFF" />
-        <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="#C9CDD4" />
-        <SolidColorBrush x:Key="ToggleSwitchFillOffPressed" Color="#14FFFFFF" />
-        <SolidColorBrush x:Key="ToggleSwitchStrokeOffPressed" Color="#8AFFFFFF" />
-        <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPressed" Color="#8F959E" />
-        <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#3B82F6" />
-        <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#00000000" />
-        <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="#0B1526" />
-        <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#60A5FA" />
-        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPointerOver" Color="#00000000" />
-        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="#0B1526" />
-        <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#2563EB" />
-        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPressed" Color="#00000000" />
-        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="#091120" />
-        <SolidColorBrush x:Key="ToggleSwitchContainerBackground" Color="#00000000" />
-        <SolidColorBrush x:Key="ToggleSwitchContainerBackgroundPointerOver" Color="#00000000" />
-        <SolidColorBrush x:Key="ToggleSwitchContainerBackgroundPressed" Color="#00000000" />
 
         <!-- Slider 配色（轨道 / 已选段 / 滑块头） -->
-        <SolidColorBrush x:Key="SliderTrackFill" Color="#29FFFFFF" />
-        <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#33FFFFFF" />
-        <SolidColorBrush x:Key="SliderTrackFillPressed" Color="#29FFFFFF" />
-        <SolidColorBrush x:Key="SliderTrackFillDisabled" Color="#14FFFFFF" />
-        <SolidColorBrush x:Key="SliderTrackValueFill" Color="#3B82F6" />
-        <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#60A5FA" />
-        <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="#2563EB" />
-        <SolidColorBrush x:Key="SliderTrackValueFillDisabled" Color="#3D4854" />
-        <SolidColorBrush x:Key="SliderThumbBackground" Color="#F2F4F8" />
-        <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#DCE1E8" />
-        <SolidColorBrush x:Key="SliderThumbBackgroundDisabled" Color="#6E7580" />
-        <SolidColorBrush x:Key="SliderContainerBackground" Color="#00000000" />
-        <SolidColorBrush x:Key="SliderContainerBackgroundPointerOver" Color="#00000000" />
-        <SolidColorBrush x:Key="SliderContainerBackgroundPressed" Color="#00000000" />
-        <SolidColorBrush x:Key="SliderContainerBackgroundDisabled" Color="#00000000" />
     </UserControl.Resources>
 
     <UserControl.Styles>

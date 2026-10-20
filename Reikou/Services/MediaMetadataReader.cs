@@ -12,16 +12,15 @@ namespace Reikou.Services;
 
 public static class MediaMetadataReader
 {
-    private const           double   EventWaitTimeoutSeconds = 0.1;
-    private static readonly TimeSpan DefaultTimeout          = TimeSpan.FromSeconds(5);
+    private const double EventWaitTimeoutSeconds = 0.1;
 
-    public static Task<double?> TryGetDurationAsync(string filePath, CancellationToken cancellationToken = default)
-    {
-        return TryGetDurationAsync(filePath, DefaultTimeout, cancellationToken);
-    }
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(5);
 
-    public static async Task<double?> TryGetDurationAsync(string            filePath, TimeSpan timeout,
-                                                          CancellationToken cancellationToken = default)
+    public static Task<double?> TryGetDurationAsync(string filePath, CancellationToken cancellationToken = default) =>
+        TryGetDurationAsync(filePath, DefaultTimeout, cancellationToken);
+
+    public static async Task<double?> TryGetDurationAsync(
+        string filePath, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(filePath) || timeout <= TimeSpan.Zero)
             return null;
@@ -43,28 +42,23 @@ public static class MediaMetadataReader
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (OperatingSystem.IsWindows())
+        if (!OperatingSystem.IsWindows()) return TryGetDurationWithMpv(filePath, timeout, cancellationToken);
+        try
         {
-            try
-            {
-                var duration = TryGetDurationWithMediaInfo(filePath, cancellationToken);
-                if (duration.HasValue)
-                {
-                    return duration;
-                }
-            }
-            catch (DllNotFoundException)
-            {
-                // Preserve duration loading when the optional native asset is unavailable.
-            }
-            catch (EntryPointNotFoundException)
-            {
-                // Preserve duration loading when the native asset is incompatible.
-            }
-            catch (BadImageFormatException)
-            {
-                // Preserve duration loading when the native asset architecture is incompatible.
-            }
+            var duration = TryGetDurationWithMediaInfo(filePath, cancellationToken);
+            if (duration.HasValue) return duration;
+        }
+        catch (DllNotFoundException)
+        {
+            // Preserve duration loading when the optional native asset is unavailable.
+        }
+        catch (EntryPointNotFoundException)
+        {
+            // Preserve duration loading when the native asset is incompatible.
+        }
+        catch (BadImageFormatException)
+        {
+            // Preserve duration loading when the native asset architecture is incompatible.
         }
 
         return TryGetDurationWithMpv(filePath, timeout, cancellationToken);
@@ -86,9 +80,7 @@ public static class MediaMetadataReader
                              out var durationMilliseconds) ||
             !double.IsFinite(durationMilliseconds)         ||
             durationMilliseconds <= 0)
-        {
             return null;
-        }
 
         return durationMilliseconds / 1000;
     }
@@ -117,10 +109,7 @@ public static class MediaMetadataReader
                     continue;
 
                 var mpvEvent = Marshal.PtrToStructure<MpvEvent>(eventPtr);
-                if (mpvEvent.eventId == MpvEventId.FileLoaded)
-                    return ReadDuration(handle);
-
-                if (mpvEvent.eventId is MpvEventId.EndFile or MpvEventId.Shutdown)
+                if (mpvEvent.eventId is MpvEventId.FileLoaded or MpvEventId.EndFile or MpvEventId.Shutdown)
                     return ReadDuration(handle);
             }
 

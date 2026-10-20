@@ -12,10 +12,7 @@ public partial class SettingsWindow : Window
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Escape)
-        {
-            return;
-        }
+        if (e.Key != Key.Escape) return;
 
         Close();
         e.Handled = true;

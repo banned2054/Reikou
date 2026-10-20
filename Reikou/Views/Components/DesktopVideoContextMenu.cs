@@ -12,26 +12,21 @@ namespace Reikou.Views.Components;
 
 internal sealed class DesktopVideoContextMenu
 {
-    private const string AudioTrackGroup    = "audio-tracks";
-    private const string SubtitleTrackGroup = "subtitle-tracks";
-
+    private const    string                 AudioTrackGroup    = "audio-tracks";
+    private const    string                 SubtitleTrackGroup = "subtitle-tracks";
+    private readonly Action                 _disableAudioTrack;
+    private readonly Action                 _disableSubtitleTrack;
+    private readonly Func<bool>             _getIsFullscreen;
     private readonly Func<MpvPlaybackState> _getPlaybackState;
-
-    private readonly Action<double> _setSubtitleDelay;
-    private readonly Action<long>   _selectAudioTrack;
-    private readonly Action<long>   _selectSubtitleTrack;
+    private readonly Func<Task>             _loadExternalSubtitle;
+    private readonly Action                 _openSettings;
+    private readonly Action<long>           _selectAudioTrack;
+    private readonly Action<long>           _selectSubtitleTrack;
+    private readonly Action<double>         _setSubtitleDelay;
+    private readonly Action                 _stop;
+    private readonly Action                 _toggleFullscreen;
 
     private readonly Action _togglePause;
-    private readonly Action _stop;
-    private readonly Action _toggleFullscreen;
-    private readonly Action _disableAudioTrack;
-    private readonly Action _disableSubtitleTrack;
-    private readonly Action _openSettings;
-
-    private readonly Func<Task> _loadExternalSubtitle;
-    private readonly Func<bool> _getIsFullscreen;
-
-    public ContextMenu Menu { get; } = new();
 
     public DesktopVideoContextMenu(Func<MpvPlaybackState> getPlaybackState,     Func<bool> getIsFullscreen,
                                    Action                 togglePause,          Action stop, Action toggleFullscreen,
@@ -55,6 +50,8 @@ internal sealed class DesktopVideoContextMenu
 
         Menu.Opening += (_, _) => Rebuild();
     }
+
+    public ContextMenu Menu { get; } = new();
 
     private void Rebuild()
     {
@@ -174,10 +171,7 @@ internal sealed class DesktopVideoContextMenu
         AddDetail(details, track.Title);
         AddDetail(details, track.Codec);
 
-        if (track.IsExternal)
-        {
-            details.Add("外挂");
-        }
+        if (track.IsExternal) details.Add("外挂");
 
         var description = details.Count == 0 ? $"轨道 {track.Id}" : string.Join(" · ", details);
         return $"{track.Id}: {description}";
@@ -187,8 +181,6 @@ internal sealed class DesktopVideoContextMenu
     {
         if (!string.IsNullOrWhiteSpace(value) &&
             !details.Contains(value, StringComparer.OrdinalIgnoreCase))
-        {
             details.Add(value);
-        }
     }
 }

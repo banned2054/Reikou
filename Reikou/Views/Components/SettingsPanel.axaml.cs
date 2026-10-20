@@ -19,10 +19,7 @@ public partial class SettingsPanel : UserControl
 
     private static void StepNumber(object? sender, int direction)
     {
-        if (sender is not RepeatButton { CommandParameter: NumberSettingViewModel setting })
-        {
-            return;
-        }
+        if (sender is not RepeatButton { CommandParameter: NumberSettingViewModel setting }) return;
 
         // NumericValue 的 setter 内部已完成取整与范围限制
         setting.NumericValue = (setting.NumericValue ?? 0m) + (decimal)setting.Increment * direction;
@@ -32,9 +29,7 @@ public partial class SettingsPanel : UserControl
     {
         if (sender is not Button { CommandParameter: PathSettingViewModel setting } ||
             TopLevel.GetTopLevel(this) is not { } topLevel)
-        {
             return;
-        }
 
         if (setting.PathKind == SettingPathKind.Directory)
         {
@@ -44,10 +39,8 @@ public partial class SettingsPanel : UserControl
                 AllowMultiple = false
             });
             var path = folders.FirstOrDefault()?.Path.LocalPath;
-            if (!string.IsNullOrWhiteSpace(path))
-            {
-                setting.Value = path;
-            }
+
+            if (!string.IsNullOrWhiteSpace(path)) setting.Value = path;
 
             return;
         }
@@ -66,9 +59,7 @@ public partial class SettingsPanel : UserControl
             ]
         });
         var filePath = files.FirstOrDefault()?.Path.LocalPath;
-        if (!string.IsNullOrWhiteSpace(filePath))
-        {
-            setting.Value = filePath;
-        }
+
+        if (!string.IsNullOrWhiteSpace(filePath)) setting.Value = filePath;
     }
 }

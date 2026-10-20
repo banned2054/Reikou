@@ -1,4 +1,5 @@
 using Avalonia;
+using Reikou.Native;
 using Serilog;
 using System;
 using System.IO;
@@ -12,7 +13,7 @@ internal class Program
 {
     static Program()
     {
-        NativeLibrary.SetDllImportResolver(typeof(Native.LibMpv).Assembly, ResolveLibMpv);
+        NativeLibrary.SetDllImportResolver(typeof(LibMpv).Assembly, ResolveLibMpv);
     }
 
     [STAThread]
@@ -48,18 +49,11 @@ internal class Program
 
     private static IntPtr ResolveLibMpv(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
-        if (libraryName != Native.LibMpv.MpvLibraryName)
-        {
-            return IntPtr.Zero;
-        }
+        if (libraryName != LibMpv.MpvLibraryName) return IntPtr.Zero;
 
         foreach (var path in GetLibMpvCandidates())
-        {
             if (File.Exists(path) && NativeLibrary.TryLoad(path, out var handle))
-            {
                 return handle;
-            }
-        }
 
         return IntPtr.Zero;
     }
@@ -100,15 +94,9 @@ internal class Program
 
     private static string[] GetPlatformLibMpvNames()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            return ["libmpv-2.dll", "mpv.dll"];
-        }
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return ["libmpv-2.dll", "mpv.dll"];
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            return ["libmpv.2.dylib", "libmpv.dylib", "mpv.dylib"];
-        }
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return ["libmpv.2.dylib", "libmpv.dylib", "mpv.dylib"];
 
         return ["libmpv.so.2", "libmpv.so", "mpv.so"];
     }

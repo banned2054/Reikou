@@ -18,5 +18,5 @@ public enum MpvRenderParamType
     SkipRendering      = 13,
     DrmDisplay         = 14,
     DrmDrawSurfaceSize = 15,
-    DrmDisplayV2       = 16,
+    DrmDisplayV2       = 16
 }

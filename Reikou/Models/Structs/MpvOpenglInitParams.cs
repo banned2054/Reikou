@@ -7,6 +7,6 @@ namespace Reikou.Models.Structs;
 public struct MpvOpenglInitParams
 {
     public LibMpv.MpvGetProcAddressFn getProcAddress;
-    public nint                getProcAddressContext;
-    public nint                extraExtensions;
+    public nint                       getProcAddressContext;
+    public nint                       extraExtensions;
 }

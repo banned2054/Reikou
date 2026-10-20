@@ -8,36 +8,25 @@ namespace Reikou.Services;
 
 internal static class MpvTrackListParser
 {
-    private const           int MaximumTrackCount = 10_000;
-    private static readonly int MpvNodeSize       = Marshal.SizeOf<MpvNode>();
+    private const int MaximumTrackCount = 10_000;
+
+    private static readonly int MpvNodeSize = Marshal.SizeOf<MpvNode>();
 
     public static ImmutableArray<MediaTrackInfo> Parse(MpvEventProperty property)
     {
-        if (property.format != MpvFormat.Node || property.data == nint.Zero)
-        {
-            return [];
-        }
+        if (property.format != MpvFormat.Node || property.data == nint.Zero) return [];
 
         var root = Marshal.PtrToStructure<MpvNode>(property.data);
-        if (root.format != MpvFormat.NodeArray || root.list == nint.Zero)
-        {
-            return [];
-        }
+        if (root.format != MpvFormat.NodeArray || root.list == nint.Zero) return [];
 
         var list = Marshal.PtrToStructure<MpvNodeList>(root.list);
-        if (list.Num <= 0 || list.Num > MaximumTrackCount || list.Values == nint.Zero)
-        {
-            return [];
-        }
+        if (list.Num <= 0 || list.Num > MaximumTrackCount || list.Values == nint.Zero) return [];
 
         var tracks = ImmutableArray.CreateBuilder<MediaTrackInfo>(list.Num);
         for (var index = 0; index < list.Num; index++)
         {
             var node = ReadNode(list.Values, index);
-            if (TryParseTrack(node, out var track))
-            {
-                tracks.Add(track);
-            }
+            if (TryParseTrack(node, out var track)) tracks.Add(track);
         }
 
         return tracks.MoveToImmutable();
@@ -46,19 +35,14 @@ internal static class MpvTrackListParser
     private static bool TryParseTrack(MpvNode node, out MediaTrackInfo track)
     {
         track = null!;
-        if (node.format != MpvFormat.NodeMap || node.list == nint.Zero)
-        {
-            return false;
-        }
+        if (node.format != MpvFormat.NodeMap || node.list == nint.Zero) return false;
 
         var map = Marshal.PtrToStructure<MpvNodeList>(node.list);
         if (map.Num    <= 0                ||
             map.Num    > MaximumTrackCount ||
             map.Values == nint.Zero        ||
             map.Keys   == nint.Zero)
-        {
             return false;
-        }
 
         long    id         = 0;
         var     type       = MediaTrackType.Unknown;
@@ -74,10 +58,7 @@ internal static class MpvTrackListParser
         {
             var keyPointer = Marshal.ReadIntPtr(map.Keys, checked(index * nint.Size));
             var key        = keyPointer == nint.Zero ? null : Marshal.PtrToStringUTF8(keyPointer);
-            if (key == null)
-            {
-                continue;
-            }
+            if (key == null) continue;
 
             var value = ReadNode(map.Values, index);
             switch (key)
@@ -115,10 +96,7 @@ internal static class MpvTrackListParser
             }
         }
 
-        if (id <= 0 || type == MediaTrackType.Unknown)
-        {
-            return false;
-        }
+        if (id <= 0 || type == MediaTrackType.Unknown) return false;
 
         track = new MediaTrackInfo(id, type, language, title, codec, isSelected, isDefault, isForced, isExternal);
         return true;

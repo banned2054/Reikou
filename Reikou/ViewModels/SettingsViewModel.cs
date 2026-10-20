@@ -10,16 +10,145 @@ namespace Reikou.ViewModels;
 
 internal sealed class SettingsViewModel : INotifyPropertyChanged
 {
-    private readonly HardwareDecodingMode _initialHardwareDecoding;
-    private readonly AudioOutputDriver    _initialAudioOutput;
+    private static readonly SettingChoice[] HardwareDecodingChoices =
+    [
+        new("自动（推荐）", (int)HardwareDecodingMode.Automatic),
+        new("关闭", (int)HardwareDecodingMode.Disabled),
+        new("自动复制（兼容）", (int)HardwareDecodingMode.Compatibility),
+        new("D3D11VA 复制（Windows）", (int)HardwareDecodingMode.D3D11Copy),
+        new("DXVA2 复制（Windows）", (int)HardwareDecodingMode.Dxva2Copy),
+        new("NVDEC 复制（NVIDIA）", (int)HardwareDecodingMode.NvdecCopy),
+        new("CUDA 复制（NVIDIA）", (int)HardwareDecodingMode.CudaCopy),
+        new("VA-API 复制（Linux）", (int)HardwareDecodingMode.VaapiCopy),
+        new("VideoToolbox 复制（macOS）", (int)HardwareDecodingMode.VideoToolboxCopy)
+    ];
+
+    private static readonly SettingChoice[] VideoSynchronizationChoices =
+    [
+        new("音频时钟", (int)VideoSynchronizationMode.Audio),
+        new("显示器重采样", (int)VideoSynchronizationMode.DisplayResample),
+        new("显示器重采样 + 丢帧", (int)VideoSynchronizationMode.DisplayResampleVideoDrop),
+        new("显示器重采样 + 解同步", (int)VideoSynchronizationMode.DisplayResampleDesync),
+        new("显示器时钟 + 视频丢帧", (int)VideoSynchronizationMode.DisplayVideoDrop),
+        new("显示器时钟 + 音频丢帧", (int)VideoSynchronizationMode.DisplayAudioDrop),
+        new("显示器时钟 + 解同步", (int)VideoSynchronizationMode.DisplayDesync),
+        new("完全解同步", (int)VideoSynchronizationMode.Desync)
+    ];
+
+    private static readonly SettingChoice[] ScalingChoices =
+    [
+        new("双线性（最快）", (int)VideoScalingFilter.Bilinear),
+        new("双三次", (int)VideoScalingFilter.Bicubic),
+        new("Spline 36", (int)VideoScalingFilter.Spline36),
+        new("Lanczos", (int)VideoScalingFilter.Lanczos),
+        new("EWA Lanczos", (int)VideoScalingFilter.EwaLanczos),
+        new("EWA Lanczos Sharp", (int)VideoScalingFilter.EwaLanczosSharp),
+        new("Mitchell", (int)VideoScalingFilter.Mitchell),
+        new("Catmull-Rom", (int)VideoScalingFilter.CatmullRom),
+        new("Oversample", (int)VideoScalingFilter.Oversample)
+    ];
+
+    private static readonly SettingChoice[] DitherChoices =
+    [
+        new("关闭", (int)DitherTargetDepth.Disabled),
+        new("自动", (int)DitherTargetDepth.Automatic),
+        new("8 bit", (int)DitherTargetDepth.EightBit),
+        new("10 bit", (int)DitherTargetDepth.TenBit)
+    ];
+
+    private static readonly SettingChoice[] TemporalScalingChoices =
+    [
+        new("双线性", (int)TemporalScalingFilter.Bilinear),
+        new("双三次", (int)TemporalScalingFilter.Bicubic),
+        new("Spline 16", (int)TemporalScalingFilter.Spline16),
+        new("Mitchell（推荐）", (int)TemporalScalingFilter.Mitchell),
+        new("Oversample", (int)TemporalScalingFilter.Oversample)
+    ];
+
+    private static readonly SettingChoice[] AudioOutputChoices =
+    [
+        new("自动（推荐）", (int)AudioOutputDriver.Automatic),
+        new("WASAPI（Windows）", (int)AudioOutputDriver.Wasapi),
+        new("PipeWire（Linux）", (int)AudioOutputDriver.PipeWire),
+        new("PulseAudio（Linux）", (int)AudioOutputDriver.PulseAudio),
+        new("CoreAudio（macOS）", (int)AudioOutputDriver.CoreAudio),
+        new("OpenAL", (int)AudioOutputDriver.OpenAl),
+        new("SDL", (int)AudioOutputDriver.Sdl)
+    ];
+
+    private static readonly SettingChoice[] ExternalMatchChoices =
+    [
+        new("关闭", (int)ExternalFileMatchMode.Disabled),
+        new("精确匹配", (int)ExternalFileMatchMode.Exact),
+        new("模糊匹配", (int)ExternalFileMatchMode.Fuzzy),
+        new("全部", (int)ExternalFileMatchMode.All)
+    ];
+
+    private static readonly SettingChoice[] SubtitleBlendChoices =
+    [
+        new("关闭（推荐）", (int)SubtitleBlendMode.Disabled),
+        new("随视频缩放", (int)SubtitleBlendMode.Video),
+        new("始终混合", (int)SubtitleBlendMode.Always)
+    ];
+
+    private static readonly SettingChoice[] ScreenshotFormatChoices =
+    [
+        new("PNG", (int)ScreenshotImageFormat.Png),
+        new("JPEG", (int)ScreenshotImageFormat.Jpeg),
+        new("WebP", (int)ScreenshotImageFormat.WebP),
+        new("JPEG XL", (int)ScreenshotImageFormat.JpegXl)
+    ];
+
+    private static readonly SettingChoice[] IccIntentChoices =
+    [
+        new("感知", 0),
+        new("相对色度", 1),
+        new("饱和度", 2),
+        new("绝对色度", 3)
+    ];
+
+    private static readonly SettingChoice[] PngFilterChoices =
+    [
+        new("无", 0),
+        new("Sub", 1),
+        new("Up", 2),
+        new("Average", 3),
+        new("Paeth", 4),
+        new("混合（推荐）", 5)
+    ];
+
+    private static readonly SettingChoice[] ToneMappingChoices =
+    [
+        new("自动", (int)ToneMappingAlgorithm.Automatic),
+        new("Clip", (int)ToneMappingAlgorithm.Clip),
+        new("Mobius", (int)ToneMappingAlgorithm.Mobius),
+        new("Reinhard", (int)ToneMappingAlgorithm.Reinhard),
+        new("Hable", (int)ToneMappingAlgorithm.Hable),
+        new("BT.2390", (int)ToneMappingAlgorithm.Bt2390),
+        new("Gamma", (int)ToneMappingAlgorithm.Gamma),
+        new("Linear", (int)ToneMappingAlgorithm.Linear),
+        new("Spline", (int)ToneMappingAlgorithm.Spline),
+        new("BT.2446A", (int)ToneMappingAlgorithm.Bt2446A)
+    ];
+
+    private static readonly SettingChoice[] ThemeChoices =
+    [
+        new("跟随系统", (int)ApplicationThemeMode.System),
+        new("深色", (int)ApplicationThemeMode.Dark),
+        new("浅色", (int)ApplicationThemeMode.Light)
+    ];
+
     private readonly string               _initialAudioDevice;
+    private readonly AudioOutputDriver    _initialAudioOutput;
+    private readonly HardwareDecodingMode _initialHardwareDecoding;
+
+    private string? _activeHardwareDecoder;
+
+    private bool   _isOpen;
+    private string _searchText = string.Empty;
 
     private SettingsCategoryViewModel _selectedCategory;
     private AppSettings               _settings;
-
-    private bool    _isOpen;
-    private string? _activeHardwareDecoder;
-    private string  _searchText = string.Empty;
 
     public SettingsViewModel(AppSettings settings)
     {
@@ -32,9 +161,6 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
         _selectedCategory = Categories[0];
         RefreshVisibleOptions();
     }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-    public event Action<AppSettings>?         SettingsChanged;
 
     public ObservableCollection<SettingsCategoryViewModel> Categories     { get; }
     public ObservableCollection<SettingsOptionViewModel>   VisibleOptions { get; } = [];
@@ -52,10 +178,7 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
         get => _searchText;
         set
         {
-            if (SetField(ref _searchText, value ?? string.Empty))
-            {
-                RefreshVisibleOptions();
-            }
+            if (SetField(ref _searchText, value ?? string.Empty)) RefreshVisibleOptions();
         }
     }
 
@@ -64,12 +187,10 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
         get => _selectedCategory;
         set
         {
-            if (value != null && SetField(ref _selectedCategory, value))
-            {
-                RefreshVisibleOptions();
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ContentTitle)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ContentDescription)));
-            }
+            if (value == null || !SetField(ref _selectedCategory, value)) return;
+            RefreshVisibleOptions();
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ContentTitle)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ContentDescription)));
         }
     }
 
@@ -91,12 +212,12 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
         _          => _activeHardwareDecoder
     };
 
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public event Action<AppSettings>?         SettingsChanged;
+
     public void SetActiveHardwareDecoder(string? decoder)
     {
-        if (SetField(ref _activeHardwareDecoder, decoder, nameof(ActiveHardwareDecoderText)))
-        {
-            RefreshReadOnlyValues();
-        }
+        if (SetField(ref _activeHardwareDecoder, decoder, nameof(ActiveHardwareDecoderText))) RefreshReadOnlyValues();
     }
 
     public void SetDanmakuEnabled(bool enabled)
@@ -104,10 +225,7 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
         var option = Categories.SelectMany(category => category.Options)
                                .OfType<ToggleSettingViewModel>()
                                .FirstOrDefault(item => item.Title == "默认显示弹幕");
-        if (option != null)
-        {
-            option.Value = enabled;
-        }
+        option?.Value = enabled;
     }
 
     private ObservableCollection<SettingsCategoryViewModel> BuildCategories() =>
@@ -359,10 +477,7 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
             : Categories.SelectMany(category => category.Options)
                         .Where(option => option.Matches(search));
 
-        foreach (var option in source)
-        {
-            VisibleOptions.Add(option);
-        }
+        foreach (var option in source) VisibleOptions.Add(option);
 
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasVisibleOptions)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ContentTitle)));
@@ -372,17 +487,11 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
     private void RefreshReadOnlyValues()
     {
         foreach (var category in Categories)
-        {
             for (var index = 0; index < category.Options.Count; index++)
-            {
                 if (category.Options[index] is ReadOnlySettingViewModel readOnly &&
                     readOnly.Title == "当前解码器")
-                {
                     category.Options[index] =
                         new ReadOnlySettingViewModel(readOnly.Title, readOnly.Description, ActiveHardwareDecoderText);
-                }
-            }
-        }
 
         RefreshVisibleOptions();
     }
@@ -407,8 +516,8 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
                                                  Action<double> changed, bool restartRequired = false) =>
         new(title, description, value, minimum, maximum, increment, suffix, changed, restartRequired);
 
-    private static TextSettingViewModel Text(string title, string description, string value, Action<string> changed,
-                                             bool   restartRequired = false) =>
+    private static TextSettingViewModel Text(
+        string title, string description, string value, Action<string> changed, bool restartRequired = false) =>
         new(title, description, value, changed, restartRequired);
 
     private static PathSettingViewModel Path(string title, string description, string value, SettingPathKind pathKind,
@@ -417,141 +526,10 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-        {
-            return false;
-        }
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
 
         field = value;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         return true;
     }
-
-    private static readonly SettingChoice[] HardwareDecodingChoices =
-    [
-        new("自动（推荐）", (int)HardwareDecodingMode.Automatic),
-        new("关闭", (int)HardwareDecodingMode.Disabled),
-        new("自动复制（兼容）", (int)HardwareDecodingMode.Compatibility),
-        new("D3D11VA 复制（Windows）", (int)HardwareDecodingMode.D3D11Copy),
-        new("DXVA2 复制（Windows）", (int)HardwareDecodingMode.Dxva2Copy),
-        new("NVDEC 复制（NVIDIA）", (int)HardwareDecodingMode.NvdecCopy),
-        new("CUDA 复制（NVIDIA）", (int)HardwareDecodingMode.CudaCopy),
-        new("VA-API 复制（Linux）", (int)HardwareDecodingMode.VaapiCopy),
-        new("VideoToolbox 复制（macOS）", (int)HardwareDecodingMode.VideoToolboxCopy)
-    ];
-
-    private static readonly SettingChoice[] VideoSynchronizationChoices =
-    [
-        new("音频时钟", (int)VideoSynchronizationMode.Audio),
-        new("显示器重采样", (int)VideoSynchronizationMode.DisplayResample),
-        new("显示器重采样 + 丢帧", (int)VideoSynchronizationMode.DisplayResampleVideoDrop),
-        new("显示器重采样 + 解同步", (int)VideoSynchronizationMode.DisplayResampleDesync),
-        new("显示器时钟 + 视频丢帧", (int)VideoSynchronizationMode.DisplayVideoDrop),
-        new("显示器时钟 + 音频丢帧", (int)VideoSynchronizationMode.DisplayAudioDrop),
-        new("显示器时钟 + 解同步", (int)VideoSynchronizationMode.DisplayDesync),
-        new("完全解同步", (int)VideoSynchronizationMode.Desync)
-    ];
-
-    private static readonly SettingChoice[] ScalingChoices =
-    [
-        new("双线性（最快）", (int)VideoScalingFilter.Bilinear),
-        new("双三次", (int)VideoScalingFilter.Bicubic),
-        new("Spline 36", (int)VideoScalingFilter.Spline36),
-        new("Lanczos", (int)VideoScalingFilter.Lanczos),
-        new("EWA Lanczos", (int)VideoScalingFilter.EwaLanczos),
-        new("EWA Lanczos Sharp", (int)VideoScalingFilter.EwaLanczosSharp),
-        new("Mitchell", (int)VideoScalingFilter.Mitchell),
-        new("Catmull-Rom", (int)VideoScalingFilter.CatmullRom),
-        new("Oversample", (int)VideoScalingFilter.Oversample)
-    ];
-
-    private static readonly SettingChoice[] DitherChoices =
-    [
-        new("关闭", (int)DitherTargetDepth.Disabled),
-        new("自动", (int)DitherTargetDepth.Automatic),
-        new("8 bit", (int)DitherTargetDepth.EightBit),
-        new("10 bit", (int)DitherTargetDepth.TenBit)
-    ];
-
-    private static readonly SettingChoice[] TemporalScalingChoices =
-    [
-        new("双线性", (int)TemporalScalingFilter.Bilinear),
-        new("双三次", (int)TemporalScalingFilter.Bicubic),
-        new("Spline 16", (int)TemporalScalingFilter.Spline16),
-        new("Mitchell（推荐）", (int)TemporalScalingFilter.Mitchell),
-        new("Oversample", (int)TemporalScalingFilter.Oversample)
-    ];
-
-    private static readonly SettingChoice[] AudioOutputChoices =
-    [
-        new("自动（推荐）", (int)AudioOutputDriver.Automatic),
-        new("WASAPI（Windows）", (int)AudioOutputDriver.Wasapi),
-        new("PipeWire（Linux）", (int)AudioOutputDriver.PipeWire),
-        new("PulseAudio（Linux）", (int)AudioOutputDriver.PulseAudio),
-        new("CoreAudio（macOS）", (int)AudioOutputDriver.CoreAudio),
-        new("OpenAL", (int)AudioOutputDriver.OpenAl),
-        new("SDL", (int)AudioOutputDriver.Sdl)
-    ];
-
-    private static readonly SettingChoice[] ExternalMatchChoices =
-    [
-        new("关闭", (int)ExternalFileMatchMode.Disabled),
-        new("精确匹配", (int)ExternalFileMatchMode.Exact),
-        new("模糊匹配", (int)ExternalFileMatchMode.Fuzzy),
-        new("全部", (int)ExternalFileMatchMode.All)
-    ];
-
-    private static readonly SettingChoice[] SubtitleBlendChoices =
-    [
-        new("关闭（推荐）", (int)SubtitleBlendMode.Disabled),
-        new("随视频缩放", (int)SubtitleBlendMode.Video),
-        new("始终混合", (int)SubtitleBlendMode.Always)
-    ];
-
-    private static readonly SettingChoice[] ScreenshotFormatChoices =
-    [
-        new("PNG", (int)ScreenshotImageFormat.Png),
-        new("JPEG", (int)ScreenshotImageFormat.Jpeg),
-        new("WebP", (int)ScreenshotImageFormat.WebP),
-        new("JPEG XL", (int)ScreenshotImageFormat.JpegXl)
-    ];
-
-    private static readonly SettingChoice[] IccIntentChoices =
-    [
-        new("感知", 0),
-        new("相对色度", 1),
-        new("饱和度", 2),
-        new("绝对色度", 3)
-    ];
-
-    private static readonly SettingChoice[] PngFilterChoices =
-    [
-        new("无", 0),
-        new("Sub", 1),
-        new("Up", 2),
-        new("Average", 3),
-        new("Paeth", 4),
-        new("混合（推荐）", 5)
-    ];
-
-    private static readonly SettingChoice[] ToneMappingChoices =
-    [
-        new("自动", (int)ToneMappingAlgorithm.Automatic),
-        new("Clip", (int)ToneMappingAlgorithm.Clip),
-        new("Mobius", (int)ToneMappingAlgorithm.Mobius),
-        new("Reinhard", (int)ToneMappingAlgorithm.Reinhard),
-        new("Hable", (int)ToneMappingAlgorithm.Hable),
-        new("BT.2390", (int)ToneMappingAlgorithm.Bt2390),
-        new("Gamma", (int)ToneMappingAlgorithm.Gamma),
-        new("Linear", (int)ToneMappingAlgorithm.Linear),
-        new("Spline", (int)ToneMappingAlgorithm.Spline),
-        new("BT.2446A", (int)ToneMappingAlgorithm.Bt2446A)
-    ];
-
-    private static readonly SettingChoice[] ThemeChoices =
-    [
-        new("跟随系统", (int)ApplicationThemeMode.System),
-        new("深色", (int)ApplicationThemeMode.Dark),
-        new("浅色", (int)ApplicationThemeMode.Light)
-    ];
 }

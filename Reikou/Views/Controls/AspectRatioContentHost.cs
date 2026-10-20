@@ -5,8 +5,8 @@ using System;
 namespace Reikou.Views.Controls;
 
 /// <summary>
-/// Arranges its child inside the actual video content rectangle, excluding the
-/// letterbox area produced by mpv's default keep-aspect behavior.
+///     Arranges its child inside the actual video content rectangle, excluding the
+///     letterbox area produced by mpv's default keep-aspect behavior.
 /// </summary>
 public sealed class AspectRatioContentHost : Decorator
 {
@@ -18,10 +18,7 @@ public sealed class AspectRatioContentHost : Decorator
         set
         {
             var sanitized = double.IsFinite(value) && value > 0 ? value : 0;
-            if (Math.Abs(_aspectRatio - sanitized) < 0.0001)
-            {
-                return;
-            }
+            if (Math.Abs(_aspectRatio - sanitized) < 0.0001) return;
 
             _aspectRatio = sanitized;
             InvalidateMeasure();
@@ -37,10 +34,7 @@ public sealed class AspectRatioContentHost : Decorator
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        if (Child == null)
-        {
-            return finalSize;
-        }
+        if (Child == null) return finalSize;
 
         var contentSize = ContentSize(finalSize);
         var offsetX     = (finalSize.Width  - contentSize.Width)  / 2;
@@ -51,10 +45,7 @@ public sealed class AspectRatioContentHost : Decorator
 
     private Size ContentSize(Size availableSize)
     {
-        if (_aspectRatio <= 0 || availableSize.Width <= 0 || availableSize.Height <= 0)
-        {
-            return availableSize;
-        }
+        if (_aspectRatio <= 0 || availableSize.Width <= 0 || availableSize.Height <= 0) return availableSize;
 
         var availableAspectRatio = availableSize.Width / availableSize.Height;
         return availableAspectRatio > _aspectRatio

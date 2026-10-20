@@ -14,18 +14,18 @@ public sealed class AppSettingsStore
     private const string SettingsFileName         = "settings.json";
 
     private readonly SemaphoreSlim _saveGate = new(1, 1);
-    private          AppSettings   _settings;
 
-    public static AppSettingsStore Current { get; } = Load(GetDefaultSettingsPath());
-
-    public string      SettingsPath { get; }
-    public AppSettings Settings     => Volatile.Read(ref _settings);
+    private AppSettings _settings;
 
     private AppSettingsStore(string settingsPath, AppSettings settings)
     {
         SettingsPath = settingsPath;
         _settings    = settings.Normalize();
     }
+
+    public static AppSettingsStore Current      { get; } = Load(GetDefaultSettingsPath());
+    public        string           SettingsPath { get; }
+    public        AppSettings      Settings     => Volatile.Read(ref _settings);
 
     public AppSettings Update(AppSettings settings)
     {
@@ -57,7 +57,7 @@ public sealed class AppSettingsStore
                      .SerializeAsync(stream, settings, AppSettingsJsonContext.Default.AppSettings, cancellationToken)
                      .ConfigureAwait(false);
                 await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-                stream.Flush(flushToDisk : true);
+                stream.Flush(true);
             }
 
             ReplaceSettingsFile(temporaryPath, SettingsPath);
@@ -66,7 +66,6 @@ public sealed class AppSettingsStore
         finally
         {
             if (temporaryPath != null)
-            {
                 try
                 {
                     File.Delete(temporaryPath);
@@ -75,7 +74,6 @@ public sealed class AppSettingsStore
                 {
                     Debug.WriteLine($"Failed to remove temporary settings file: {exception}");
                 }
-            }
 
             _saveGate.Release();
         }
@@ -83,10 +81,7 @@ public sealed class AppSettingsStore
 
     private static AppSettingsStore Load(string settingsPath)
     {
-        if (TryLoadSettings(settingsPath, out var settings))
-        {
-            return new AppSettingsStore(settingsPath, settings);
-        }
+        if (TryLoadSettings(settingsPath, out var settings)) return new AppSettingsStore(settingsPath, settings);
 
         var backupPath = GetBackupPath(settingsPath);
         return TryLoadSettings(backupPath, out settings)
@@ -97,19 +92,13 @@ public sealed class AppSettingsStore
     private static bool TryLoadSettings(string path, out AppSettings settings)
     {
         settings = new AppSettings();
-        if (!File.Exists(path))
-        {
-            return false;
-        }
+        if (!File.Exists(path)) return false;
 
         try
         {
             using var stream = File.OpenRead(path);
             var       loaded = JsonSerializer.Deserialize(stream, AppSettingsJsonContext.Default.AppSettings);
-            if (loaded == null)
-            {
-                return false;
-            }
+            if (loaded == null) return false;
 
             settings = loaded.Normalize();
             return true;
@@ -132,12 +121,12 @@ public sealed class AppSettingsStore
         var backupPath = GetBackupPath(settingsPath);
         try
         {
-            File.Replace(temporaryPath, settingsPath, backupPath, ignoreMetadataErrors : true);
+            File.Replace(temporaryPath, settingsPath, backupPath, true);
         }
         catch (PlatformNotSupportedException)
         {
-            File.Copy(settingsPath, backupPath, overwrite : true);
-            File.Move(temporaryPath, settingsPath, overwrite : true);
+            File.Copy(settingsPath, backupPath, true);
+            File.Move(temporaryPath, settingsPath, true);
         }
     }
 
