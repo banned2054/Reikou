@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:components="clr-namespace:Reikou.Views.Components"
+                    xmlns:controls="clr-namespace:Reikou.Views.Controls"
                     xmlns:models="clr-namespace:Reikou.Models">
     <Design.PreviewWith>
         <Border Padding="20" Background="Black" Width="800" Height="200">
@@ -49,10 +50,8 @@
                                         Classes="IconButton"
                                         Width="40"
                                         Height="40">
-                                    <Svg Path="avares://Reikou/Assets/ico-list.svg"
-                                         Width="22"
-                                         Height="22"
-                                         Stretch="Uniform" />
+                                    <controls:ViewportIcon Width="22" Height="22" ViewBoxWidth="32" ViewBoxHeight="32"
+                                                           Data="{StaticResource IconList}" />
                                 </Button>
                                 <Popup x:Name="PART_PlaylistPopup"
                                        IsOpen="{Binding IsPlaylistPopupOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
@@ -205,10 +204,8 @@
                             Width="40"
                             Height="40">
                             <ToolTip.Tip>截图</ToolTip.Tip>
-                            <Svg Path="avares://Reikou/Assets/ico-screenshot.svg"
-                                 Width="22"
-                                 Height="22"
-                                 Stretch="Uniform" />
+                            <controls:ViewportIcon Width="22" Height="22" ViewBoxWidth="1024" ViewBoxHeight="1024"
+                                                   Data="{StaticResource IconScreenshot}" />
                         </Button>
                     </StackPanel>
                 </Grid>

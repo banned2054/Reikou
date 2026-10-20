@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:components="clr-namespace:Reikou.Views.Components">
+                    xmlns:components="clr-namespace:Reikou.Views.Components"
+                    xmlns:controls="clr-namespace:Reikou.Views.Controls">
     <ControlTheme x:Key="{x:Type components:VideoTransportControls}" TargetType="components:VideoTransportControls">
         <Setter Property="Template">
             <ControlTemplate>
@@ -27,42 +28,40 @@
                             <Button x:Name="PART_PreviousButton" Command="{TemplateBinding PreviousCommand}"
                                     Classes="IconButton" Width="32" Height="32">
                                 <Panel>
-                                    <Svg Path="avares://Reikou/Assets/ico-previous.svg" Width="20" Height="20"
-                                         Stretch="Uniform" />
+                                    <controls:ViewportIcon Width="20" Height="20" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                           Data="{StaticResource IconPrevious}" />
                                 </Panel>
                             </Button>
                             <Button x:Name="PART_BackwardButton" Command="{TemplateBinding BackwardCommand}"
                                     Classes="IconButton" Width="32" Height="32">
                                 <Panel>
-                                    <Svg Path="avares://Reikou/Assets/ico-backward.svg" Width="20" Height="20"
-                                         Stretch="Uniform" />
+                                    <controls:ViewportIcon Width="20" Height="20" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                           Data="{StaticResource IconBackward}" />
                                 </Panel>
                             </Button>
                             <Button x:Name="PART_PlayPauseButton" Command="{TemplateBinding PlayPauseCommand}"
                                     Classes="IconButton" Width="32" Height="32">
                                 <Panel>
-                                    <Svg Path="avares://Reikou/Assets/ico-play.svg"
-                                         Width="20" Height="20"
-                                         IsVisible="{Binding !IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
-                                         Stretch="Uniform" />
-                                    <Svg Path="avares://Reikou/Assets/ico-pause.svg"
-                                         Width="20" Height="20"
-                                         IsVisible="{Binding IsPlaying, RelativeSource={RelativeSource TemplatedParent}}"
-                                         Stretch="Uniform" />
+                                    <controls:ViewportIcon Width="20" Height="20" ViewBoxWidth="22" ViewBoxHeight="22"
+                                                           Data="{StaticResource IconPlay}"
+                                                           IsVisible="{Binding !IsPlaying, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    <controls:ViewportIcon Width="20" Height="20" ViewBoxWidth="22" ViewBoxHeight="22"
+                                                           Data="{StaticResource IconPause}"
+                                                           IsVisible="{Binding IsPlaying, RelativeSource={RelativeSource TemplatedParent}}" />
                                 </Panel>
                             </Button>
                             <Button x:Name="PART_ForwardButton" Command="{TemplateBinding ForwardCommand}"
                                     Classes="IconButton" Width="32" Height="32">
                                 <Panel>
-                                    <Svg Path="avares://Reikou/Assets/ico-forward.svg" Width="20" Height="20"
-                                         Stretch="Uniform" />
+                                    <controls:ViewportIcon Width="20" Height="20" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                           Data="{StaticResource IconForward}" />
                                 </Panel>
                             </Button>
                             <Button x:Name="PART_NextButton" Command="{TemplateBinding NextCommand}"
                                     Classes="IconButton" Width="32" Height="32">
                                 <Panel>
-                                    <Svg Path="avares://Reikou/Assets/ico-next.svg" Width="20" Height="20"
-                                         Stretch="Uniform" />
+                                    <controls:ViewportIcon Width="20" Height="20" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                           Data="{StaticResource IconNext}" />
                                 </Panel>
                             </Button>
                             <TextBlock Text="{TemplateBinding TimeText}" Foreground="White"
@@ -79,12 +78,12 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
                                     <Panel>
-                                        <Svg Path="avares://Reikou/Assets/ico-volume-off.svg"
-                                             IsVisible="{Binding IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
-                                             Stretch="Uniform" />
-                                        <Svg Path="avares://Reikou/Assets/ico-volume.svg"
-                                             IsVisible="{Binding !IsMuted, RelativeSource={RelativeSource TemplatedParent}}"
-                                             Stretch="Uniform" />
+                                        <controls:ViewportIcon Width="22" Height="22" ViewBoxWidth="22" ViewBoxHeight="22"
+                                                               Data="{StaticResource IconVolumeOff}"
+                                                               IsVisible="{Binding IsMuted, RelativeSource={RelativeSource TemplatedParent}}" />
+                                        <controls:ViewportIcon Width="22" Height="22" ViewBoxWidth="22" ViewBoxHeight="22"
+                                                               Data="{StaticResource IconVolume}"
+                                                               IsVisible="{Binding !IsMuted, RelativeSource={RelativeSource TemplatedParent}}" />
                                     </Panel>
                                 </Button>
 
@@ -162,12 +161,12 @@
                             <Button x:Name="PART_FullscreenButton" Command="{TemplateBinding ToggleFullscreenCommand}"
                                     Classes="IconButton" Width="32" Height="32">
                                 <Panel>
-                                    <Svg Path="avares://Reikou/Assets/ico-fullscreen.svg"
-                                         IsVisible="{Binding !IsFullscreen, RelativeSource={RelativeSource TemplatedParent}}"
-                                         Stretch="Uniform" />
-                                    <Svg Path="avares://Reikou/Assets/ico-fullscreen-exit.svg"
-                                         IsVisible="{Binding IsFullscreen, RelativeSource={RelativeSource TemplatedParent}}"
-                                         Stretch="Uniform" />
+                                    <controls:ViewportIcon Width="24" Height="24" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                           Data="{StaticResource IconFullscreen}"
+                                                           IsVisible="{Binding !IsFullscreen, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    <controls:ViewportIcon Width="24" Height="24" ViewBoxWidth="24" ViewBoxHeight="24"
+                                                           Data="{StaticResource IconFullscreenExit}"
+                                                           IsVisible="{Binding IsFullscreen, RelativeSource={RelativeSource TemplatedParent}}" />
                                 </Panel>
                             </Button>
                         </StackPanel>
